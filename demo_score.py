@@ -109,8 +109,32 @@ def run(opt):
         root = opt.input_path
         sub_dirs = [root + "/" + x for x in os.listdir(root)
                     if os.path.isdir(root + "/" + x)]
-        for dir_path in sub_dirs:
-            pass
+
+        with tqdm(total=len(sub_dirs)) as progress_bar:
+            cnt = 0
+
+            for dir_path in sub_dirs:
+                img_paths = [dir_path + "/" + x for x in os.listdir(dir_path)]
+                print("Total {:d} samples to be evaluated in {:s}..."
+                      .format(len(img_paths, dir_path)))
+
+                for img_path in img_paths:
+                    image, image_ds = load_img(img_path)
+                    score = get_score(model, regressor, image, image_ds)
+                    # print(score)
+
+                    if opt.viz:
+                        img_name = os.path.split(img_path)[-1]
+                        pre, ext = img_name.split(".")
+                        viz_save_path = opt.viz_dir + "/" \
+                                        + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
+                                        + ".{:s}".format(ext)
+                        if not os.path.isfile(viz_save_path):
+                            shutil.copyfile(img_path, viz_save_path)
+
+                    cnt += 1
+
+            progress_bar.update()
 
 
 def parse_args():
