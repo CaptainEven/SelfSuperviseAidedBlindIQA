@@ -112,12 +112,12 @@ def run(opt):
         sub_dirs.sort()
 
         with tqdm(total=len(sub_dirs)) as progress_bar:
-            cnt = 0
-
             for dir_path in sub_dirs:
+                cnt = 0
+
                 img_paths = [dir_path + "/" + x for x in os.listdir(dir_path)]
-                print("Total {:d} samples to be evaluated in {:s}..."
-                      .format(len(img_paths), dir_path))
+                # print("Total {:d} samples to be evaluated in {:s}..."
+                #       .format(len(img_paths), dir_path))
 
                 for img_path in img_paths:
                     image, image_ds = load_img(img_path)
