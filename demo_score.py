@@ -106,7 +106,11 @@ def run(opt):
         print(score)
 
     elif os.path.isdir(opt.input_path):
-        pass
+        root = opt.input_path
+        sub_dirs = [root + "/" + x for x in os.listdir(root)
+                    if os.path.isdir(root + "/" + x)]
+        for dir_path in sub_dirs:
+            pass
 
 
 def parse_args():
