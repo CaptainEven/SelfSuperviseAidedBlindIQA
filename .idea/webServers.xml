@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="e325b030-01a1-40c5-9bce-695fddfc740a" name="ContrIQUE">
+        <fileTransfer accessType="SFTP" host="10.8.3.1" port="22" sshConfigId="caa64eec-d759-463d-acd9-17dbd0129bd5" sshConfig="jaya@10.8.3.1:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
