@@ -109,6 +109,7 @@ def run(opt):
         root = opt.input_path
         sub_dirs = [root + "/" + x for x in os.listdir(root)
                     if os.path.isdir(root + "/" + x)]
+        sub_dirs.sort()
 
         with tqdm(total=len(sub_dirs)) as progress_bar:
             cnt = 0
@@ -126,11 +127,12 @@ def run(opt):
                     if opt.viz:
                         img_name = os.path.split(img_path)[-1]
                         pre, ext = img_name.split(".")
-                        viz_save_path = opt.viz_dir + "/" \
+                        viz_save_path =dir_path + "/" \
                                         + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
                                         + ".{:s}".format(ext)
                         if not os.path.isfile(viz_save_path):
-                            shutil.copyfile(img_path, viz_save_path)
+                            # shutil.copyfile(img_path, viz_save_path)
+                            os.rename(img_path, viz_save_path)
 
                     cnt += 1
 
@@ -151,7 +153,7 @@ def parse_args():
     #                     help="")
     parser.add_argument("--input_path",
                         type=str,
-                        default="",
+                        default="/mnt/diskd/even/plates",
                         help="")
     parser.add_argument("--viz",
                         type=bool,
