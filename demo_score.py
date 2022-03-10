@@ -117,7 +117,7 @@ def run(opt):
             for dir_path in sub_dirs:
                 img_paths = [dir_path + "/" + x for x in os.listdir(dir_path)]
                 print("Total {:d} samples to be evaluated in {:s}..."
-                      .format(len(img_paths, dir_path)))
+                      .format(len(img_paths), dir_path))
 
                 for img_path in img_paths:
                     image, image_ds = load_img(img_path)
