@@ -116,8 +116,8 @@ def run(opt):
                 cnt = 0
 
                 img_paths = [dir_path + "/" + x for x in os.listdir(dir_path)]
-                # print("Total {:d} samples to be evaluated in {:s}..."
-                #       .format(len(img_paths), dir_path))
+                print("Total {:d} samples to be evaluated in {:s}..."
+                      .format(len(img_paths), dir_path))
 
                 for img_path in img_paths:
                     image, image_ds = load_img(img_path)
@@ -126,6 +126,8 @@ def run(opt):
 
                     if opt.viz:
                         img_name = os.path.split(img_path)[-1]
+                        if img_name.count(".") > 1:  # 跳过已经处理过的
+                            continue
                         pre, ext = img_name.split(".")
                         viz_save_path =dir_path + "/" \
                                         + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
@@ -136,7 +138,7 @@ def run(opt):
 
                     cnt += 1
 
-            progress_bar.update()
+                progress_bar.update()
 
 
 def parse_args():
