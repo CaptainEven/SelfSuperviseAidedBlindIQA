@@ -91,11 +91,11 @@ def run(opt):
                     if opt.viz:
                         img_name = os.path.split(img_path)[-1]
                         pre, ext = img_name.split(".")
-                        viz_save_path = opt.viz_dir + "/" \
-                                        + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
-                                        + ".{:s}".format(ext)
-                        if not os.path.isfile(viz_save_path):
-                            shutil.copyfile(img_path, viz_save_path)
+                        dst_path = opt.viz_dir + "/" \
+                                   + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
+                                   + ".{:s}".format(ext)
+                        if not os.path.isfile(dst_path):
+                            shutil.copyfile(img_path, dst_path)
 
                     cnt += 1
                     progress_bar.update()
@@ -129,12 +129,12 @@ def run(opt):
                         if img_name.count(".") > 1:  # 跳过已经处理过的
                             continue
                         pre, ext = img_name.split(".")
-                        viz_save_path =dir_path + "/" \
-                                        + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
-                                        + ".{:s}".format(ext)
-                        if not os.path.isfile(viz_save_path):
-                            # shutil.copyfile(img_path, viz_save_path)
-                            os.rename(img_path, viz_save_path)
+                        dst_path = dir_path + "/" \
+                                   + "{:.3f}_{:s}_{:d}".format(score, pre, cnt) \
+                                   + ".{:s}".format(ext)
+                        if not os.path.isfile(dst_path):
+                            # shutil.copyfile(img_path, dst_path)
+                            os.rename(img_path, dst_path)
 
                     cnt += 1
 
