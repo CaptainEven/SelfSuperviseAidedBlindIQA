@@ -65,7 +65,7 @@ class CONTRIQUE_model(nn.Module):
         h_i = h_i.view(-1, self.n_features)
         h_j = h_j.view(-1, self.n_features)
 
-        if self.normalize:
+        if self.normalize:  # L2 normalize?
             h_i = nn.functional.normalize(h_i, dim=1)
             h_j = nn.functional.normalize(h_j, dim=1)
 

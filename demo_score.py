@@ -116,7 +116,7 @@ def run(opt):
                 cnt = 0
 
                 img_paths = [dir_path + "/" + x for x in os.listdir(dir_path)]
-                print("Total {:d} samples to be evaluated in {:s}..."
+                print("\nTotal {:d} samples to be evaluated in {:s}...\n"
                       .format(len(img_paths), dir_path))
 
                 for img_path in img_paths:
