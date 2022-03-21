@@ -101,7 +101,7 @@ def train(args,
     return loss_epoch
 
 
-def main(gpu, args):
+def run(gpu, args):
     rank = args.nr * args.gpus + gpu
 
     if args.nodes > 1:
@@ -115,13 +115,13 @@ def main(gpu, args):
     np.random.seed(args.seed)
 
     # loader for synthetic distortions data
-    train_dataset_syn = image_data(file_path=args.csv_file_syn, \
+    train_dataset_syn = image_data(csv_path=args.csv_file_syn,
                                    image_size=args.image_size)
 
     if args.nodes > 1:
-        train_sampler_syn = torch.utils.data.distributed.DistributedSampler(
-            train_dataset_syn, num_replicas=args.world_size, rank=rank, shuffle=True
-        )
+        train_sampler_syn = torch.utils.data.distributed.DistributedSampler(train_dataset_syn,
+                                                                            num_replicas=args.world_size, rank=rank,
+                                                                            shuffle=True)
     else:
         train_sampler_syn = None
 
@@ -134,25 +134,24 @@ def main(gpu, args):
         sampler=train_sampler_syn,
     )
 
-    # loader for authetically distorted data
-    train_dataset_ugc = image_data(file_path=args.csv_file_ugc, \
+    # loader for authentically distorted data
+    train_dataset_ugc = image_data(csv_path=args.csv_file_ugc,
                                    image_size=args.image_size)
 
     if args.nodes > 1:
-        train_sampler_ugc = torch.utils.data.distributed.DistributedSampler(
-            train_dataset_ugc, num_replicas=args.world_size, rank=rank, shuffle=True
-        )
+        train_sampler_ugc = torch.utils.data.distributed.DistributedSampler(train_dataset_ugc,
+                                                                            num_replicas=args.world_size,
+                                                                            rank=rank,
+                                                                            shuffle=True)
     else:
         train_sampler_ugc = None
 
-    train_loader_ugc = torch.utils.data.DataLoader(
-        train_dataset_ugc,
-        batch_size=args.batch_size,
-        shuffle=(train_sampler_ugc is None),
-        drop_last=True,
-        num_workers=args.workers,
-        sampler=train_sampler_ugc,
-    )
+    train_loader_ugc = torch.utils.data.DataLoader(train_dataset_ugc,
+                                                   batch_size=args.batch_size,
+                                                   shuffle=(train_sampler_ugc is None),
+                                                   drop_last=True,
+                                                   num_workers=args.workers,
+                                                   sampler=train_sampler_ugc, )
 
     # initialize ResNet
     encoder = get_network(args.network, pretrained=False)
@@ -229,6 +228,9 @@ def main(gpu, args):
 
 
 def parse_args():
+    """
+    Arg parser
+    """
     parser = argparse.ArgumentParser(description="CONTRIQUE")
     parser.add_argument('--nodes',
                         type=int,
@@ -321,6 +323,7 @@ def parse_args():
     args.gpus = 1
     args.world_size = args.gpus * args.nodes
     args.num_patches = args.patch_dim[0] * args.patch_dim[1]
+
     return args
 
 
@@ -328,9 +331,8 @@ if __name__ == "__main__":
     args = parse_args()
 
     if args.nodes > 1:
-        print(
-            f"Training with {args.nodes} nodes, waiting until all nodes join before starting training"
-        )
-        mp.spawn(main, args=(args,), nprocs=args.gpus, join=True)
+        print(f"Training with {args.nodes} nodes,"
+              f" waiting until all nodes join before starting training")
+        mp.spawn(run, args=(args,), nprocs=args.gpus, join=True)
     else:
-        main(0, args)
+        run(0, args)
