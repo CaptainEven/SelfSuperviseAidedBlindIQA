@@ -205,8 +205,14 @@ def run(gpu, args):
     for epoch in range(args.start_epoch, args.epochs):
         start = time.time()
 
-        loss_epoch = train(args, train_loader_syn, train_loader_ugc, \
-                           model, criterion, optimizer, scaler, scheduler)
+        loss_epoch = train(args,
+                           train_loader_syn,
+                           train_loader_ugc,
+                           model,
+                           criterion,
+                           optimizer,
+                           scaler,
+                           scheduler)
 
         end = time.time()
         print(np.round(end - start, 4))

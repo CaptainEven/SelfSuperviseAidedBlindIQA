@@ -66,7 +66,7 @@ class image_data(Dataset):
     def __init__(self, csv_path, image_size=(256, 256), transform=True):
         """
         """
-        self.fls = pd.read_csv(csv_path)
+        self.f_list = pd.read_csv(csv_path)
         self.image_size = image_size
 
         self.T = transforms.Compose([
@@ -75,7 +75,7 @@ class image_data(Dataset):
         ])
 
     def __len__(self):
-        return len(self.fls)
+        return len(self.f_list)
 
     def __getitem__(self, idx):
         """
@@ -84,7 +84,7 @@ class image_data(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        img_path = self.fls.iloc[idx]['File_names'].rstrip()
+        img_path = self.f_list.iloc[idx]['File_names'].rstrip()
         image_orig = Image.open(img_path)
 
         if image_orig.mode == 'L':
@@ -114,7 +114,7 @@ class image_data(Dataset):
         image = self.T(image)
 
         # read distortion class, for authentically distorted images it will be 0
-        label = self.fls.iloc[idx]['labels']
+        label = self.f_list.iloc[idx]['labels']
         label = label[1:-1].split(' ')
         label = np.array([t.replace(',', '') for t in label]).astype(np.float32)
 
