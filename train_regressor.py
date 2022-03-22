@@ -16,7 +16,9 @@ def run(opt):
 
     # train regression
     reg = Ridge(alpha=opt.alpha).fit(feat, scores)
-    pickle.dump(reg, open('lin_regressor.save', 'wb'))
+
+    with open('lin_regressor.save', 'wb') as f:
+        pickle.dump(reg, f)
 
 
 def parse_args():
