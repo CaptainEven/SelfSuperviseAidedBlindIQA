@@ -4,10 +4,47 @@ import torch
 import torch.nn as nn
 
 
+class DarknetModel(nn.Module):
+    def __init__(self,
+                 opt,
+                 encoder,
+                 n_features,
+                 patch_dim=(2, 2),
+                 normalize=True,
+                 projection_dim=128):
+        """
+        Init
+        """
+        super(DarknetModel, self).__init__()
+
+        self.normalize = normalize
+        self.encoder = nn.Sequential(*list(encoder.children())[:-2])
+        self.n_features = n_features
+        self.patch_dim = patch_dim
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.avgpool_patch = nn.AdaptiveAvgPool2d(patch_dim)
+
+        # MLP for projector
+        self.projector = nn.Sequential(nn.Linear(self.n_features,
+                                                 self.n_features,
+                                                 bias=False),
+                                       nn.BatchNorm1d(self.n_features),
+                                       nn.ReLU(),
+                                       nn.Linear(self.n_features, projection_dim, bias=False),
+                                       nn.BatchNorm1d(projection_dim), )
+
+    def forward(self, x_i, x_j):
+        """
+        forward pass
+        """
+        pass
+
+
 class CONTRIQUE_model(nn.Module):
     # resnet50 architecture with projector
     def __init__(self,
-                 args,
+                 opt,
                  encoder,
                  n_features,
                  patch_dim=(2, 2),
@@ -27,13 +64,13 @@ class CONTRIQUE_model(nn.Module):
         self.avgpool_patch = nn.AdaptiveAvgPool2d(patch_dim)
 
         # MLP for projector
-        self.projector = nn.Sequential(
-            nn.Linear(self.n_features, self.n_features, bias=False),
-            nn.BatchNorm1d(self.n_features),
-            nn.ReLU(),
-            nn.Linear(self.n_features, projection_dim, bias=False),
-            nn.BatchNorm1d(projection_dim),
-        )
+        self.projector = nn.Sequential(nn.Linear(self.n_features,
+                                                 self.n_features,
+                                                 bias=False),
+                                       nn.BatchNorm1d(self.n_features),
+                                       nn.ReLU(),
+                                       nn.Linear(self.n_features, projection_dim, bias=False),
+                                       nn.BatchNorm1d(projection_dim), )
 
     def forward(self, x_i, x_j):
         """
