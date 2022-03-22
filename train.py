@@ -346,15 +346,15 @@ def parse_args():
                         type=int,
                         default=10,
                         help='random seed')
-    args = parser.parse_args()
+    opt = parser.parse_args()
 
-    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    args.num_gpus = torch.cuda.device_count()
-    args.gpus = 1
-    args.world_size = args.gpus * args.nodes
-    args.num_patches = args.patch_dim[0] * args.patch_dim[1]
+    opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    opt.num_gpus = torch.cuda.device_count()
+    opt.gpus = 1
+    opt.world_size = opt.gpus * opt.nodes
+    opt.num_patches = opt.patch_dim[0] * opt.patch_dim[1]
 
-    return args
+    return opt
 
 
 if __name__ == "__main__":
