@@ -17,7 +17,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from model_io import save_model
 from modules.CONTRIQUE_model import CONTRIQUE_model
 from modules.configure_optimizers import configure_optimizers
-from modules.dataset_loader import image_data, PlateImageDataset
+from modules.dataset_loader import image_data
 from modules.network import get_network
 from modules.nt_xent_multiclass import NT_Xent
 from modules.sync_batchnorm import convert_model
@@ -102,12 +102,15 @@ def train(args,
 
 
 def run(gpu, opt):
+    """
+    Run the training process
+    """
     rank = opt.nr * opt.gpus + gpu
 
     if opt.nodes > 1:
         cur_dir = 'file://' + os.getcwd() + '/sharedfile'
-        dist.init_process_group("nccl", init_method=cur_dir, \
-                                rank=rank, timeout=datetime.timedelta(seconds=3600), \
+        dist.init_process_group("nccl", init_method=cur_dir,
+                                rank=rank, timeout=datetime.timedelta(seconds=3600),
                                 world_size=opt.world_size)
         torch.cuda.set_device(gpu)
 
