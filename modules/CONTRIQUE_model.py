@@ -46,10 +46,10 @@ class DarknetModel(nn.Module):
         h_i_patch = self.avgpool_patch(h_i)
         h_j_patch = self.avgpool_patch(h_j)
 
-        h_i_patch = h_i_patch.reshape(-1, self.n_features, \
+        h_i_patch = h_i_patch.reshape(-1, self.n_features,
                                       self.patch_dim[0] * self.patch_dim[1])
 
-        h_j_patch = h_j_patch.reshape(-1, self.n_features, \
+        h_j_patch = h_j_patch.reshape(-1, self.n_features,
                                       self.patch_dim[0] * self.patch_dim[1])
 
         h_i_patch = torch.transpose(h_i_patch, 2, 1)

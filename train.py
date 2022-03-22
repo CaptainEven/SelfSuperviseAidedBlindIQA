@@ -19,6 +19,8 @@ from modules.CONTRIQUE_model import CONTRIQUE_model
 from modules.configure_optimizers import configure_optimizers
 from modules.dataset_loader import image_data
 from modules.network import get_network
+from modules.CONTRIQUE_model import DarknetModel
+from modules.network import Darknet
 from modules.nt_xent_multiclass import NT_Xent
 from modules.sync_batchnorm import convert_model
 
