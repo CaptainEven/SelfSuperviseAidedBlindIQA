@@ -337,20 +337,30 @@ def mvFiles(txt_path, dst_dir, ratio=1.0):
                     print("Total {:d} files transferred.".format(cnt))
 
 
-def genCSV(dir_list, csv_path, ext=".bmp", mode="syn"):
+def genCSV(dir_list,
+           csv_path,
+           ext=".bmp",
+           data_mode="syn",
+           write_mode="w"):
     """
     Generate CSV file from dir list
+    :param data_mode: syn | ref | ugc
+    :param write_mode: w | a+
     """
     if len(dir_list) == 0:
         print("[Err]: empty dir list.")
         return
 
+    print("Data mode: ", data_mode)
+    print("Write mode: ", write_mode)
+
     N_DISTORTIONS = 25
     N_CLS = N_DISTORTIONS * 5 + 1
     print("N_CLS: {:d}".format(N_CLS))
     cnt = 0
-    with open(csv_path, "w", encoding="utf-8") as f:
-        f.write(",Unnamed: 0,File_names,labels\n")
+    with open(csv_path, write_mode, encoding="utf-8") as f:
+        if write_mode != "a+":
+            f.write(",Unnamed: 0,File_names,labels\n")
         for dir_path in dir_list:
             print("Processing {:s}...".format(dir_path))
             img_names = [x for x in os.listdir(dir_path) if x.endswith(ext)]
@@ -362,13 +372,14 @@ def genCSV(dir_list, csv_path, ext=".bmp", mode="syn"):
                 items = img_name.split(".")[0].split("_")
                 print(items)
 
-                distort_type = int(items[-2])
-                distort_level = int(items[-1])
+                if len(items) > 3 and data_mode == "syn":
+                    distort_type = int(items[-2])
+                    distort_level = int(items[-1])
 
                 f.write('{:d},{:d},{:s},"['.format(cnt, cnt, img_path))
 
                 for i in range(N_CLS):
-                    if mode == "syn":
+                    if data_mode == "syn":
                         if i == (distort_type - 1) * 5 + (distort_level - 1) + 1:
                             if i == N_CLS - 1:
                                 f.write("1.0")
@@ -378,19 +389,22 @@ def genCSV(dir_list, csv_path, ext=".bmp", mode="syn"):
                             f.write("0.0, ")
                         elif i == N_CLS - 1:
                             f.write("0.0")
-                    elif mode == "ref":
+                    elif data_mode == "ref":
                         if i == 0:
                             f.write("1.0, ")
                         elif 0 <= i < N_CLS - 1:
                             f.write("0.0, ")
                         elif i == N_CLS - 1:
                             f.write("0.0")
-                    elif mode == "ugc":
+                    elif data_mode == "ugc":
                         if 0 <= i < N_CLS - 1:
                             f.write("0.0, ")
                         elif i == N_CLS - 1:
                             f.write("0.0")
-                f.write("]\n")
+                    else:
+                        print("[Err]: invalid data mode, data mode should be:"
+                              "syn | ref | ugc")
+                f.write(']"\n')
 
                 cnt += 1
 
@@ -405,9 +419,15 @@ if __name__ == "__main__":
     #         ratio=1.0)
 
     dir_list = [
-        "/mnt/diskc/tmp/dist_plate_imgs"
+        # "/mnt/diskc/tmp/dist_plate_imgs"
+        # "/mnt/diskc/tmp/ref_plate_imgs",
+        "/mnt/diskd/even/LPDataRealBase",
+        "/mnt/diskd/even/LPDataDouble"
     ]
     genCSV(dir_list=dir_list,
-           csv_path="../csv_files/plates_syn.csv")
+           csv_path="../csv_files/plates_ugc.csv",
+           ext=".jpg",
+           data_mode="ugc",
+           write_mode="w")
 
     print("Done.")

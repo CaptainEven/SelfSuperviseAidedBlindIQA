@@ -1,7 +1,14 @@
-from modules import scheduler as sch
+# encoding=utf-8
+
 import torch
 
+from modules import scheduler as sch
+
+
 def configure_optimizers(args, model, cur_iter=-1):
+    """
+    Optimizer
+    """
     iters = args.iters
 
     def exclude_from_wd_and_adaptation(name):
@@ -36,12 +43,12 @@ def configure_optimizers(args, model, cur_iter=-1):
         )
     else:
         raise NotImplementedError
-    
+
     if args.reload:
         fl = torch.load(args.model_path + 'optimizer.tar')
         optimizer.load_state_dict(fl['optimizer'])
         cur_iter = fl['scheduler']['last_epoch'] - 1
-    
+
     if args.lr_schedule == 'warmup-anneal':
         scheduler = sch.LinearWarmupAndCosineAnneal(
             optimizer,
@@ -60,8 +67,8 @@ def configure_optimizers(args, model, cur_iter=-1):
         )
     else:
         raise NotImplementedError
-    
+
     if args.reload:
         scheduler.load_state_dict(fl['scheduler'])
-    
+
     return optimizer, scheduler

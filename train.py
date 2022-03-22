@@ -17,7 +17,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from model_io import save_model
 from modules.CONTRIQUE_model import CONTRIQUE_model
 from modules.configure_optimizers import configure_optimizers
-from modules.dataset_loader import image_data
+from modules.dataset_loader import image_data, PlateImageDataset
 from modules.network import get_network
 from modules.nt_xent_multiclass import NT_Xent
 from modules.sync_batchnorm import convert_model
@@ -101,111 +101,121 @@ def train(args,
     return loss_epoch
 
 
-def run(gpu, args):
-    rank = args.nr * args.gpus + gpu
+def run(gpu, opt):
+    rank = opt.nr * opt.gpus + gpu
 
-    if args.nodes > 1:
+    if opt.nodes > 1:
         cur_dir = 'file://' + os.getcwd() + '/sharedfile'
         dist.init_process_group("nccl", init_method=cur_dir, \
                                 rank=rank, timeout=datetime.timedelta(seconds=3600), \
-                                world_size=args.world_size)
+                                world_size=opt.world_size)
         torch.cuda.set_device(gpu)
 
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
+    torch.manual_seed(opt.seed)
+    np.random.seed(opt.seed)
 
-    # loader for synthetic distortions data
-    train_dataset_syn = image_data(csv_path=args.csv_file_syn,
-                                   image_size=args.image_size)
+    ## ---------- loader for synthetic distortions data
+    train_dataset_syn = image_data(csv_path=opt.csv_file_syn,
+                                   image_size=opt.image_size)
+    # train_dataset_syn = PlateImageDataset(csv_path=opt.csv_file_syn,
+    #                                       image_size=opt.image_size)
 
-    if args.nodes > 1:
+    if opt.nodes > 1:
         train_sampler_syn = torch.utils.data.distributed.DistributedSampler(train_dataset_syn,
-                                                                            num_replicas=args.world_size, rank=rank,
+                                                                            num_replicas=opt.world_size, rank=rank,
                                                                             shuffle=True)
     else:
         train_sampler_syn = None
 
+    ## ----- Check debug or not here...
+    if opt.debug:
+        opt.workers = 0
     train_loader_syn = torch.utils.data.DataLoader(
         train_dataset_syn,
-        batch_size=args.batch_size,
+        batch_size=opt.batch_size,
         shuffle=(train_sampler_syn is None),
         drop_last=True,
-        num_workers=args.workers,
+        num_workers=opt.workers,
         sampler=train_sampler_syn,
     )
 
     # loader for authentically distorted data
-    train_dataset_ugc = image_data(csv_path=args.csv_file_ugc,
-                                   image_size=args.image_size)
+    train_dataset_ugc = image_data(csv_path=opt.csv_file_ugc,
+                                   image_size=opt.image_size)
 
-    if args.nodes > 1:
+    if opt.nodes > 1:
         train_sampler_ugc = torch.utils.data.distributed.DistributedSampler(train_dataset_ugc,
-                                                                            num_replicas=args.world_size,
+                                                                            num_replicas=opt.world_size,
                                                                             rank=rank,
                                                                             shuffle=True)
     else:
         train_sampler_ugc = None
 
     train_loader_ugc = torch.utils.data.DataLoader(train_dataset_ugc,
-                                                   batch_size=args.batch_size,
+                                                   batch_size=opt.batch_size,
                                                    shuffle=(train_sampler_ugc is None),
                                                    drop_last=True,
-                                                   num_workers=args.workers,
+                                                   num_workers=opt.workers,
                                                    sampler=train_sampler_ugc, )
 
     # initialize ResNet
-    encoder = get_network(args.network, pretrained=False)
-    args.n_features = encoder.fc.in_features  # get dimensions of fc layer
+    encoder = get_network(opt.network, pretrained=False)
+    opt.n_features = encoder.fc.in_features  # get dimensions of fc layer
 
     # initialize model
-    model = CONTRIQUE_model(args, encoder, args.n_features)
+    model = CONTRIQUE_model(opt, encoder, opt.n_features)
 
     # initialize model
-    if args.reload:
-        model_fp = args.model_path + "/checkpoint_{}.tar".format(args.epoch_num)
-        model.load_state_dict(torch.load(model_fp, map_location=args.device.type))
-    model = model.to(args.device)
+    if opt.reload:
+        ckpt_path = os.path.abspath(opt.model_path
+                                    + "/checkpoint{}.tar".format(opt.epoch_num))
+        if not os.path.isfile(ckpt_path):
+            print("[Err]: invalid ckpt path.")
+            exit(-1)
+        model.load_state_dict(torch.load(ckpt_path, map_location=opt.device.type))
+        print("{:s} loaded.".format(ckpt_path))
+    model = model.to(opt.device)
 
     # sgd optimizer
-    args.steps = min(len(train_loader_syn), len(train_loader_ugc))
-    args.lr_schedule = 'warmup-anneal'
-    args.warmup = 0.1
-    args.weight_decay = 1e-4
-    args.iters = args.steps * args.epochs
-    optimizer, scheduler = configure_optimizers(args, model, cur_iter=-1)
+    opt.steps = min(len(train_loader_syn), len(train_loader_ugc))
+    opt.lr_schedule = 'warmup-anneal'
+    opt.warmup = 0.1
+    opt.weight_decay = 1e-4
+    opt.iters = opt.steps * opt.epochs
+    optimizer, scheduler = configure_optimizers(opt, model, cur_iter=-1)
 
-    criterion = NT_Xent(args.batch_size, args.temperature, args.device, args.world_size)
+    criterion = NT_Xent(opt.batch_size, opt.temperature, opt.device, opt.world_size)
 
     # DDP / DP
-    if args.dataparallel:
+    if opt.dataparallel:
         model = convert_model(model)
         model = DataParallel(model)
 
     else:
-        if args.nodes > 1:
+        if opt.nodes > 1:
             model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
             model = DDP(model, device_ids=[gpu]);
             print(rank);
             dist.barrier()
 
-    model = model.to(args.device)
+    model = model.to(opt.device)
 
     scaler = torch.cuda.amp.GradScaler(enabled=True)
 
     #    writer = None
-    if args.nr == 0:
+    if opt.nr == 0:
         print('Training Started')
 
-    if not os.path.isdir(args.model_path):
-        os.mkdir(args.model_path)
+    if not os.path.isdir(opt.model_path):
+        os.mkdir(opt.model_path)
 
     epoch_losses = []
-    args.global_step = 0
-    args.current_epoch = args.start_epoch
-    for epoch in range(args.start_epoch, args.epochs):
+    opt.global_step = 0
+    opt.current_epoch = opt.start_epoch
+    for epoch in range(opt.start_epoch, opt.epochs):
         start = time.time()
 
-        loss_epoch = train(args,
+        loss_epoch = train(opt,
                            train_loader_syn,
                            train_loader_ugc,
                            model,
@@ -217,20 +227,20 @@ def run(gpu, args):
         end = time.time()
         print(np.round(end - start, 4))
 
-        if args.nr == 0 and epoch % 1 == 0:
-            save_model(args, model, optimizer)
+        if opt.nr == 0 and epoch % 1 == 0:
+            save_model(opt, model, optimizer)
             torch.save({'optimizer': optimizer.state_dict(),
                         'scheduler': scheduler.state_dict()}, \
-                       args.model_path + 'optimizer.tar')
+                       opt.model_path + 'optimizer.tar')
 
-        if args.nr == 0:
-            print(f"Epoch [{epoch}/{args.epochs}]\t Loss: {loss_epoch / args.steps}")
-            args.current_epoch += 1
-            epoch_losses.append(loss_epoch / args.steps)
-            np.save(args.model_path + 'losses.npy', epoch_losses)
+        if opt.nr == 0:
+            print(f"Epoch [{epoch}/{opt.epochs}]\t Loss: {loss_epoch / opt.steps}")
+            opt.current_epoch += 1
+            epoch_losses.append(loss_epoch / opt.steps)
+            np.save(opt.model_path + 'losses.npy', epoch_losses)
 
     ## end training
-    save_model(args, model, optimizer)
+    save_model(opt, model, optimizer)
 
 
 def parse_args():
@@ -241,7 +251,8 @@ def parse_args():
     parser.add_argument('--nodes',
                         type=int,
                         default=1,
-                        help='number of nodes', metavar='')
+                        help='number of nodes',
+                        metavar='')
     parser.add_argument('--nr',
                         type=int,
                         default=0,
@@ -249,23 +260,28 @@ def parse_args():
                         metavar='')
     parser.add_argument('--csv_file_syn',
                         type=str,
-                        default='csv_files/file_names_syn.csv',
+                        default='csv_files/plates_syn.csv',
                         help='list of filenames of images with synthetic distortions')
-    parser.add_argument('--csv_file_ugc', type=str,
-                        default='csv_files/file_names_ugc.csv',
+    parser.add_argument('--csv_file_ugc',
+                        type=str,
+                        default='csv_files/plates_ugc.csv',
                         help='list of filenames of UGC images')
     parser.add_argument('--image_size',
                         type=tuple,
-                        default=(256, 256),
+                        default=(192, 64),  # (256, 256)
                         help='image size')
     parser.add_argument('--batch_size',
                         type=int,
-                        default=32,
+                        default=64,  # 32
                         help='number of images in a batch')
     parser.add_argument('--workers',
                         type=int,
                         default=4,
                         help='number of workers')
+    parser.add_argument("--debug",
+                        type=bool,
+                        default=False,
+                        help="")
     parser.add_argument('--opt',
                         type=str,
                         default='sgd',
@@ -292,7 +308,7 @@ def parse_args():
                         help='number of synthetic distortion classes')
     parser.add_argument('--reload',
                         type=bool,
-                        default=False,
+                        default=False,  # True
                         help='reload trained model')
     parser.add_argument('--normalize',
                         type=bool,
@@ -318,6 +334,9 @@ def parse_args():
                         type=int,
                         default=25,
                         help='total number of epochs')
+    parser.add_argument("--epoch_num",
+                        type=int,
+                        default=25)
     parser.add_argument('--seed',
                         type=int,
                         default=10,
