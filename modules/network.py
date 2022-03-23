@@ -119,7 +119,7 @@ class Darknet(nn.Module):
         ## ----- out: final output, outs: outputs of each layer
         out, layer_outs = self.forward_once(x)
         # out = out.view(x.shape[0], -1)
-        out = out.squeeze()
+        # out = out.squeeze()
         return out
 
 

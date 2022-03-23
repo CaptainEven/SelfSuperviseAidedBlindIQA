@@ -91,9 +91,12 @@ def train(epoch,
             dist.all_reduce(loss.div_(dist.get_world_size()))
 
         if opt.nr == 0 and step % opt.print_freq == 0:
-            lr = optimizer.param_groups[0]["lr"]
-            print("Epoch {:03d} | Step [{:03d}/{:03d}] | Loss: {:>6.3f} | LR: {:.3f}"
-                  .format(epoch, step, opt.steps, loss.item(), round(lr, 5)))
+            if epoch == 0:
+                lr = opt.lr
+            else:
+                lr = optimizer.param_groups[0]["lr"]
+            print("Epoch {:03d} | Batch [{:03d}/{:03d}] | Loss: {:>6.3f} | LR: {:.5f}"
+                  .format(epoch, step, opt.steps, loss.item(), lr))
 
         if opt.nr == 0:
             opt.global_step += 1
@@ -168,14 +171,14 @@ def run(gpu, opt):
     # opt.n_features = encoder.fc.in_features  # get dimensions of fc layer
 
     encoder = Darknet(cfg_path=opt.backbone_cfg, net_size=opt.image_size)
-    opt.n_features = 512  # get dimensions of fc layer
+    opt.n_features = 2048  # get dimensions of fc layer
 
     # initialize model
     # model = CONTRIQUE_model(opt, encoder, opt.n_features)
     model = DarknetModel(opt, encoder, opt.n_features)
 
     # initialize model
-    if opt.reload:
+    if opt.reload == "False":
         ckpt_path = os.path.abspath(opt.model_path
                                     + "/checkpoint{}.tar".format(opt.epoch_num))
         if not os.path.isfile(ckpt_path):
@@ -268,6 +271,10 @@ def parse_args():
                         default=0,
                         help='rank',
                         metavar='')
+    parser.add_argument("--n_features",
+                        type=int,
+                        default=2048,
+                        help="")
     parser.add_argument("--backbone_cfg",
                         type=str,
                         default="./yolov4_tiny_backbone.cfg",
@@ -286,7 +293,7 @@ def parse_args():
                         help='image size')
     parser.add_argument('--batch_size',
                         type=int,
-                        default=640,  # 32
+                        default=512,  # 32
                         help='number of images in a batch')
     parser.add_argument('--workers',
                         type=int,
@@ -302,7 +309,7 @@ def parse_args():
                         help='optimizer type')
     parser.add_argument('--lr',
                         type=float,
-                        default=0.6,
+                        default=0.6,  # why?
                         help='learning rate')
     parser.add_argument('--network',
                         type=str,
@@ -346,11 +353,11 @@ def parse_args():
                         help='starting epoch number')
     parser.add_argument('--epochs',
                         type=int,
-                        default=25,
+                        default=50,  # 25
                         help='total number of epochs')
     parser.add_argument("--epoch_num",
                         type=int,
-                        default=0,
+                        default=21,
                         help="reloading start epoch")
     parser.add_argument('--seed',
                         type=int,
@@ -370,6 +377,7 @@ def parse_args():
         opt.device = dev
     else:
         opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     opt.num_gpus = torch.cuda.device_count()
     opt.gpus = 1
     opt.world_size = opt.gpus * opt.nodes

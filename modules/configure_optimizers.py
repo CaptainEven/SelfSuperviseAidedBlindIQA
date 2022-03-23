@@ -23,7 +23,7 @@ def configure_optimizers(args, model, cur_iter=-1):
         },
         {
             'params': [p for name, p in model.named_parameters() if exclude_from_wd_and_adaptation(name)],
-            'weight_decay': 0.,
+            'weight_decay': 0.0,
             'layer_adaptation': False,
         },
     ]

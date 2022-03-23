@@ -1,2 +1,1 @@
-python3 ./train.py --reload True \
-                   --epoch_num 0
+python3 ./train.py --lr 0.6
