@@ -90,7 +90,7 @@ def train(epoch,
             loss = loss.data.clone()
             dist.all_reduce(loss.div_(dist.get_world_size()))
 
-        if opt.nr == 0 and step % 5 == 0:
+        if opt.nr == 0 and step % opt.print_freq == 0:
             lr = optimizer.param_groups[0]["lr"]
             print("Epoch {:03d} | Step [{:03d}/{:03d}] | Loss: {:>6.3f} | LR: {:.3f}"
                   .format(epoch, step, opt.steps, loss.item(), round(lr, 5)))
@@ -356,6 +356,10 @@ def parse_args():
                         type=int,
                         default=10,
                         help='random seed')
+    parser.add_argument("--print_freq",
+                        type=int,
+                        default=10,
+                        help="")
     opt = parser.parse_args()
 
     if opt.nodes == 1:
