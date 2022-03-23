@@ -347,7 +347,8 @@ def parse_args():
                         help='total number of epochs')
     parser.add_argument("--epoch_num",
                         type=int,
-                        default=25)
+                        default=0,
+                        help="reloading start epoch")
     parser.add_argument('--seed',
                         type=int,
                         default=10,
