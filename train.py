@@ -91,7 +91,8 @@ def train(args,
 
         if args.nr == 0 and step % 5 == 0:
             lr = optimizer.param_groups[0]["lr"]
-            print(f"Step [{step}/{args.steps}]\t Loss: {loss.item()}\t LR: {round(lr, 5)}")
+            print("Step [{:03d}/{:03d}]\t Loss: {:>5.3f}\t LR: {:.3f}"
+                  .format(step, args.steps, loss.item(), round(lr, 5)))
 
         if args.nr == 0:
             args.global_step += 1
