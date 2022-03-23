@@ -216,7 +216,7 @@ def tensor_to_img(tensor,
     return tensor
 
 
-def findFilesOfExt(root, f_list, ext):
+def find_files_of_ext(root, f_list, ext):
     """
     Find all files with an extension
     """
@@ -225,13 +225,13 @@ def findFilesOfExt(root, f_list, ext):
         if os.path.isfile(f_path) and f.endswith(ext):
             f_list.append(f_path)
         elif os.path.isdir(f_path):
-            findFilesOfExt(f_path, f_list, ext)
+            find_files_of_ext(f_path, f_list, ext)
 
 
-def genTxtListOfDirs(roots_list,
-                     out_txt_path,
-                     ext=".jpg",
-                     ratio=1.0):
+def gen_txt_list_of_dirs(roots_list,
+                         out_txt_path,
+                         ext=".jpg",
+                         ratio=1.0):
     """
     Args:
         roots_list:
@@ -263,11 +263,11 @@ def genTxtListOfDirs(roots_list,
     print("Total {:d} img paths written to txt list.".format(cnt))
 
 
-def genTxtListOfDir(in_root,
-                    out_txt_path,
-                    ext=".jpg",
-                    min_size_thresh=0,
-                    ratio=1.0):
+def gen_txt_list_of_dir(in_root,
+                        out_txt_path,
+                        ext=".jpg",
+                        min_size_thresh=0,
+                        ratio=1.0):
     """
     """
     if not os.path.isdir(in_root):
@@ -276,7 +276,7 @@ def genTxtListOfDir(in_root,
 
     print("[Info]: Finding {:s} files in dir {:s}...".format(ext, in_root))
     f_list = []
-    findFilesOfExt(in_root, f_list, ext)
+    find_files_of_ext(in_root, f_list, ext)
     print("[Info]: Total {:d} samples({:s}) found.".format(len(f_list), ext))
 
     print("Start filtering files...")
@@ -305,7 +305,7 @@ def genTxtListOfDir(in_root,
     print("Total {:d} img paths written to txt list.".format(cnt))
 
 
-def mvFiles(txt_path, dst_dir, ratio=1.0):
+def mv_files(txt_path, dst_dir, ratio=1.0):
     """
     Moving(coping) files from TXTlist to a dir.
     """
@@ -337,11 +337,11 @@ def mvFiles(txt_path, dst_dir, ratio=1.0):
                     print("Total {:d} files transferred.".format(cnt))
 
 
-def genCSV(dir_list,
-           csv_path,
-           ext=".bmp",
-           data_mode="syn",
-           write_mode="w"):
+def gen_csv(dir_list,
+            csv_path,
+            ext=".bmp",
+            data_mode="syn",
+            write_mode="w"):
     """
     Generate CSV file from dir list
     :param data_mode: syn | ref | ugc
@@ -411,38 +411,38 @@ def genCSV(dir_list,
                 cnt += 1
 
 
-def genTrainSet(train_list):
+def gen_train_set(train_list):
     """
     Generate training set
     """
     dir_list = [train_list[0]]
-    genCSV(dir_list=dir_list,
-           csv_path="../csv_files/plates_syn.csv",
-           ext=".bmp",
-           data_mode="syn",
-           write_mode="w")
+    gen_csv(dir_list=dir_list,
+            csv_path="../csv_files/plates_syn.csv",
+            ext=".bmp",
+            data_mode="syn",
+            write_mode="w")
 
     dir_list = [train_list[1]]
-    genCSV(dir_list=dir_list,
-           csv_path="../csv_files/plates_syn.csv",
-           ext=".jpg",
-           data_mode="ref",
-           write_mode="a+")
+    gen_csv(dir_list=dir_list,
+            csv_path="../csv_files/plates_syn.csv",
+            ext=".jpg",
+            data_mode="ref",
+            write_mode="a+")
 
     dir_list = train_list[2:]
-    genCSV(dir_list=dir_list,
-           csv_path="../csv_files/plates_ugc.csv",
-           ext=".jpg",
-           data_mode="ugc",
-           write_mode="w")
+    gen_csv(dir_list=dir_list,
+            csv_path="../csv_files/plates_ugc.csv",
+            ext=".jpg",
+            data_mode="ugc",
+            write_mode="w")
 
 
 if __name__ == "__main__":
-    # genTxtListOfDir(in_root="/users/zhoukai/data/Plate_char_test1225",
+    # gen_txt_list_of_dir(in_root="/users/zhoukai/data/Plate_char_test1225",
     #                 out_txt_path="../data/test.txt",
     #                 min_size_thresh=0)
 
-    # mvFiles(txt_path="../data/train.txt",
+    # mv_files(txt_path="../data/train.txt",
     #         dst_dir="/mnt/diskd/MCDataset/train",
     #         ratio=1.0)
 
@@ -453,12 +453,12 @@ if __name__ == "__main__":
         "/mnt/diskd/even/LPDataDouble"
     ]
     #
-    # genCSV(dir_list=dir_list,
+    # gen_csv(dir_list=dir_list,
     #        csv_path="../csv_files/plates_ugc.csv",
     #        ext=".jpg",
     #        data_mode="ugc",
     #        write_mode="w")
 
-    genTrainSet(dir_list)
+    gen_train_set(dir_list)
 
     print("Done.")

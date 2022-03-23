@@ -56,27 +56,26 @@ def run(opt):
     Run the demo
     """
     ## Set up the device
+    ## Set up the device
     dev = str(find_most_free_gpu())
-    os.environ['CUDA_VISIBLE_DEVICES'] = dev
     print("[Info]: Using GPU {:s}.".format(dev))
-
     dev = select_device(dev)
     opt.device = dev
 
-    # ## ----- load Darknet backbone network
-    # encoder = Darknet(cfg_path=opt.backbone_cfg, net_size=opt.image_size)
-    # opt.n_features = 2048  # get dimensions of fc layer
-    # model = DarknetModel(opt, encoder, opt.n_features)
+    ## ----- load Darknet backbone network
+    encoder = Darknet(cfg_path=opt.backbone_cfg, net_size=opt.image_size)
+    opt.n_features = 2048  # get dimensions of fc layer
+    model = DarknetModel(opt, encoder, opt.n_features)
 
-    ## ----- load CONTRIQUE network
-    encoder = get_network('resnet50', pretrained=False)
-    # opt.n_features = 2048
-    model = CONTRIQUE_model(opt, encoder, opt.n_features)
+    # ## ----- load CONTRIQUE network
+    # encoder = get_network('resnet50', pretrained=False)
+    # # opt.n_features = 2048
+    # model = CONTRIQUE_model(opt, encoder, opt.n_features)
 
     ## ----- load Darknet backbone encoder
     print("Loading checkpoint {:s}...".format(opt.model_path))
     model.load_state_dict(torch.load(opt.model_path, map_location=opt.device.type))
-    model = model.to(opt.device)
+    model = model.to(dev)
 
     # load regressor model
     regressor = pickle.load(open(opt.linear_regressor_path, 'rb'))
@@ -140,7 +139,7 @@ def run(opt):
                       .format(len(img_paths), dir_path))
 
                 for img_path in img_paths:
-                    image, image_ds = load_img(img_path, opt.device)
+                    image, image_ds = load_img(img_path, dev)
                     score = get_score(model, regressor, image, image_ds)
                     # print(score)
 
@@ -201,7 +200,7 @@ def parse_args():
     ## checkpoint20.tar
     parser.add_argument('--model_path',
                         type=str,
-                        default='checkpoints/pretrained_res50.tar',  # pretrained_res50.tar
+                        default='checkpoints/checkpoint4.tar',  # pretrained_res50.tar
                         help='Path to trained CONTRIQUE model',
                         metavar='')
     parser.add_argument('--linear_regressor_path',

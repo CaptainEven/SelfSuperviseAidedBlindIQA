@@ -178,7 +178,7 @@ def run(gpu, opt):
     model = DarknetModel(opt, encoder, opt.n_features)
 
     # initialize model
-    if opt.reload == "False":
+    if opt.reload:
         ckpt_path = os.path.abspath(opt.model_path
                                     + "/checkpoint{}.tar".format(opt.epoch_num))
         if not os.path.isfile(ckpt_path):
