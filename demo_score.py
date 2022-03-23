@@ -55,12 +55,7 @@ def run(opt):
     """
     Run the demo
     """
-    ## Set up the device
-    ## Set up the device
-    dev = str(find_most_free_gpu())
-    print("[Info]: Using GPU {:s}.".format(dev))
-    dev = select_device(dev)
-    opt.device = dev
+    dev = opt.device
 
     ## ----- load Darknet backbone network
     encoder = Darknet(cfg_path=opt.backbone_cfg, net_size=opt.image_size)
@@ -216,4 +211,10 @@ def parse_args():
 
 if __name__ == '__main__':
     opt = parse_args()
+
+    dev = str(find_most_free_gpu())
+    print("[Info]: Using GPU {:s}.".format(dev))
+    dev = select_device(dev)
+    opt.device = dev
+
     run(opt)
