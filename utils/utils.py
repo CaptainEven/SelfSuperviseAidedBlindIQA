@@ -369,8 +369,10 @@ def genCSV(dir_list,
                 if not os.path.isfile(img_path):
                     continue
 
+                print("processing {:s}".format(img_path))
+
                 items = img_name.split(".")[0].split("_")
-                print(items)
+                # print(items)
 
                 if len(items) > 3 and data_mode == "syn":
                     distort_type = int(items[-2])
