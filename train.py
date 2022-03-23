@@ -15,10 +15,10 @@ from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from model_io import save_model
-from modules.CONTRIQUE_model import CONTRIQUE_model, DarknetModel
+from modules.CONTRIQUE_model import DarknetModel
 from modules.configure_optimizers import configure_optimizers
 from modules.dataset_loader import image_data
-from modules.network import get_network, Darknet
+from modules.network import Darknet
 from modules.nt_xent_multiclass import NT_Xent
 from modules.sync_batchnorm import convert_model
 from utils.utils import find_most_free_gpu, select_device
@@ -27,7 +27,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
-def train(args,
+def train(epoch,
+          opt,
           train_loader_syn,
           train_loader_ugc,
           model,
@@ -54,22 +55,22 @@ def train(args,
         ugc_i2 = ugc_i2.cuda(non_blocking=True)
         x_i2 = torch.cat((syn_i2, ugc_i2), dim=0)
 
-        dist_label = torch.zeros((2 * args.batch_size * (args.num_patches),
-                                  args.clusters + (args.batch_size * args.nodes * args.num_patches)))
+        dist_label = torch.zeros((2 * opt.batch_size * (opt.num_patches),
+                                  opt.clusters + (opt.batch_size * opt.nodes * opt.num_patches)))
 
         # distortion classes
         # synthetic distortion classes
-        dist_label = torch.zeros((2 * args.batch_size,
-                                  args.clusters + (args.batch_size * args.nodes)))
-        dist_label[:args.batch_size, :args.clusters] = dist_label_syn.clone()
+        dist_label = torch.zeros((2 * opt.batch_size,
+                                  opt.clusters + (opt.batch_size * opt.nodes)))
+        dist_label[:opt.batch_size, :opt.clusters] = dist_label_syn.clone()
 
         # UGC data - each image is unique class
-        dist_label[args.batch_size:, args.clusters + (args.nr * args.batch_size): \
-                                     args.clusters + ((args.nr + 1) * args.batch_size)] = \
-            torch.eye(args.batch_size)
+        dist_label[opt.batch_size:, opt.clusters + (opt.nr * opt.batch_size): \
+                                    opt.clusters + ((opt.nr + 1) * opt.batch_size)] = \
+            torch.eye(opt.batch_size)
 
         # all local patches inherit class of the original image
-        dist_label = dist_label.repeat(1, args.num_patches).view(-1, dist_label.shape[1])
+        dist_label = dist_label.repeat(1, opt.num_patches).view(-1, dist_label.shape[1])
         dist_label = dist_label.cuda(non_blocking=True)
 
         with torch.cuda.amp.autocast(enabled=True):
@@ -89,13 +90,13 @@ def train(args,
             loss = loss.data.clone()
             dist.all_reduce(loss.div_(dist.get_world_size()))
 
-        if args.nr == 0 and step % 5 == 0:
+        if opt.nr == 0 and step % 5 == 0:
             lr = optimizer.param_groups[0]["lr"]
-            print("Step [{:03d}/{:03d}]\t Loss: {:>6.3f}\t LR: {:.3f}"
-                  .format(step, args.steps, loss.item(), round(lr, 5)))
+            print("Epoch {:03d} | Step [{:03d}/{:03d}] | Loss: {:>6.3f} | LR: {:.3f}"
+                  .format(epoch, step, opt.steps, loss.item(), round(lr, 5)))
 
-        if args.nr == 0:
-            args.global_step += 1
+        if opt.nr == 0:
+            opt.global_step += 1
 
         loss_epoch += loss.item()
 
@@ -223,7 +224,8 @@ def run(gpu, opt):
     for epoch in range(opt.start_epoch, opt.epochs):
         start = time.time()
 
-        loss_epoch = train(opt,
+        loss_epoch = train(epoch,
+                           opt,
                            train_loader_syn,
                            train_loader_ugc,
                            model,
