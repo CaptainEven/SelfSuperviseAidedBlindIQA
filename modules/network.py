@@ -23,8 +23,9 @@ class Darknet(nn.Module):
         """
         super(Darknet, self).__init__()
 
+        cfg_path = os.path.abspath(cfg_path)
         if not os.path.isfile(cfg_path):
-            print("[Err]: invalid cfg file path.")
+            print("[Err]: invalid cfg file path: {:s}.".format(cfg_path))
             exit(-1)
 
         self.module_defs = parse_darknet_cfg(cfg_path)

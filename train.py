@@ -15,14 +15,13 @@ from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from model_io import save_model
-from modules.CONTRIQUE_model import CONTRIQUE_model
+from modules.CONTRIQUE_model import CONTRIQUE_model, DarknetModel
 from modules.configure_optimizers import configure_optimizers
 from modules.dataset_loader import image_data
-from modules.network import get_network
-from modules.CONTRIQUE_model import DarknetModel
-from modules.network import Darknet
+from modules.network import get_network, Darknet
 from modules.nt_xent_multiclass import NT_Xent
 from modules.sync_batchnorm import convert_model
+from utils.utils import find_most_free_gpu, select_device
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -74,8 +73,7 @@ def train(args,
         dist_label = dist_label.cuda(non_blocking=True)
 
         with torch.cuda.amp.autocast(enabled=True):
-            z_i1, z_i2, z_i1_patch, z_i2_patch, h_i1, h_i2, h_i1_patch, h_i2_patch \
-                = model(x_i1, x_i2)
+            z_i1, z_i2, z_i1_patch, z_i2_patch, h_i1, h_i2, h_i1_patch, h_i2_patch = model.forward(x_i1, x_i2)
             loss = criterion(z_i1_patch, z_i2_patch, dist_label)
 
         # update model weights
@@ -164,11 +162,15 @@ def run(gpu, opt):
                                                    sampler=train_sampler_ugc, )
 
     # initialize ResNet
-    encoder = get_network(opt.network, pretrained=False)
-    opt.n_features = encoder.fc.in_features  # get dimensions of fc layer
+    # encoder = get_network(opt.network, pretrained=False)
+    # opt.n_features = encoder.fc.in_features  # get dimensions of fc layer
+
+    encoder = Darknet(cfg_path=opt.backbone_cfg, net_size=opt.image_size)
+    opt.n_features = 512  # get dimensions of fc layer
 
     # initialize model
-    model = CONTRIQUE_model(opt, encoder, opt.n_features)
+    # model = CONTRIQUE_model(opt, encoder, opt.n_features)
+    model = DarknetModel(opt, encoder, opt.n_features)
 
     # initialize model
     if opt.reload:
@@ -263,6 +265,10 @@ def parse_args():
                         default=0,
                         help='rank',
                         metavar='')
+    parser.add_argument("--backbone_cfg",
+                        type=str,
+                        default="./yolov4_tiny_backbone.cfg",
+                        help="")
     parser.add_argument('--csv_file_syn',
                         type=str,
                         default='csv_files/plates_syn.csv',
@@ -277,11 +283,11 @@ def parse_args():
                         help='image size')
     parser.add_argument('--batch_size',
                         type=int,
-                        default=64,  # 32
+                        default=640,  # 32
                         help='number of images in a batch')
     parser.add_argument('--workers',
                         type=int,
-                        default=4,
+                        default=8,  # 4, 8
                         help='number of workers')
     parser.add_argument("--debug",
                         type=bool,
@@ -348,7 +354,14 @@ def parse_args():
                         help='random seed')
     opt = parser.parse_args()
 
-    opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if opt.nodes == 1:
+        ## Set up the device
+        dev = str(find_most_free_gpu())
+        print("[Info]: Using GPU {:s}.".format(dev))
+        dev = select_device(dev)
+        opt.device = dev
+    else:
+        opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     opt.num_gpus = torch.cuda.device_count()
     opt.gpus = 1
     opt.world_size = opt.gpus * opt.nodes

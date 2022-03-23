@@ -18,7 +18,7 @@ class DarknetModel(nn.Module):
         super(DarknetModel, self).__init__()
 
         self.normalize = normalize
-        self.encoder = nn.Sequential(*list(encoder.children())[:-2])
+        self.encoder = encoder  # nn.Sequential(*list(encoder.children()))
         self.n_features = n_features
         self.patch_dim = patch_dim
 

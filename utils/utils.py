@@ -10,7 +10,7 @@ import torch
 from tqdm import tqdm
 
 
-def find_free_gpu():
+def find_most_free_gpu():
     """
     :return:
     """
@@ -409,6 +409,32 @@ def genCSV(dir_list,
                 cnt += 1
 
 
+def genTrainSet(train_list):
+    """
+    Generate training set
+    """
+    dir_list = [train_list[0]]
+    genCSV(dir_list=dir_list,
+           csv_path="../csv_files/plates_syn.csv",
+           ext=".bmp",
+           data_mode="syn",
+           write_mode="w")
+
+    dir_list = [train_list[1]]
+    genCSV(dir_list=dir_list,
+           csv_path="../csv_files/plates_syn.csv",
+           ext=".jpg",
+           data_mode="ref",
+           write_mode="a+")
+
+    dir_list = train_list[2:]
+    genCSV(dir_list=dir_list,
+           csv_path="../csv_files/plates_ugc.csv",
+           ext=".jpg",
+           data_mode="ugc",
+           write_mode="w")
+
+
 if __name__ == "__main__":
     # genTxtListOfDir(in_root="/users/zhoukai/data/Plate_char_test1225",
     #                 out_txt_path="../data/test.txt",
@@ -419,15 +445,18 @@ if __name__ == "__main__":
     #         ratio=1.0)
 
     dir_list = [
-        # "/mnt/diskc/tmp/dist_plate_imgs"
-        # "/mnt/diskc/tmp/ref_plate_imgs",
+        "/mnt/diskd/dist_plates",
+        "/mnt/diskd/ref_plates",
         "/mnt/diskd/even/LPDataRealBase",
         "/mnt/diskd/even/LPDataDouble"
     ]
-    genCSV(dir_list=dir_list,
-           csv_path="../csv_files/plates_ugc.csv",
-           ext=".jpg",
-           data_mode="ugc",
-           write_mode="w")
+    #
+    # genCSV(dir_list=dir_list,
+    #        csv_path="../csv_files/plates_ugc.csv",
+    #        ext=".jpg",
+    #        data_mode="ugc",
+    #        write_mode="w")
+
+    genTrainSet(dir_list)
 
     print("Done.")

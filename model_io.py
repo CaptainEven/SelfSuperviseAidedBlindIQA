@@ -4,19 +4,19 @@ import os
 import torch
 
 
-def save_model(args, model, optimizer):
+def save_model(opt, model, optimizer):
     """
     Save the models
     """
-    out = os.path.join(args.model_path, "checkpoint{}.tar"
-                       .format(args.current_epoch))
+    save_path = os.path.join(opt.model_path, "checkpoint{}.tar".format(opt.current_epoch))
 
     # To save a DataParallel model generically, save the model.module.state_dict().
     # This way, you have the flexibility to load the model any way you want to any device you want.
-    if args.nodes > 1:
-        torch.save(model.module.state_dict(), out)
+    if opt.nodes > 1:
+        torch.save(model.module.state_dict(), save_path)
     else:
         if isinstance(model, torch.nn.DataParallel):
-            torch.save(model.module.state_dict(), out)
+            torch.save(model.module.state_dict(), save_path)
         else:
-            torch.save(model.state_dict(), out)
+            torch.save(model.state_dict(), save_path)
+    print("{:s} saved.".format(save_path))
