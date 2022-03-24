@@ -52,6 +52,8 @@ def configure_optimizers(args, model, cur_iter=-1, load_optimizer=True):
             optimizer.load_state_dict(fl['optimizer'])
             cur_iter = fl['scheduler']['last_epoch'] - 1
             print("{:s} loaded.".format(optimizer_path))
+        else:
+            print("[Err]: invalid optimizer file path: {:s}".format(optimizer_path))
     else:
         print("[Info]: optimizer not loaded.")
 

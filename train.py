@@ -242,9 +242,12 @@ def run(gpu, opt):
 
         if opt.nr == 0 and epoch % 1 == 0:
             save_model(opt, model, optimizer)
-            torch.save({'optimizer': optimizer.state_dict(),
-                        'scheduler': scheduler.state_dict()}, \
-                       opt.model_path + 'optimizer.tar')
+
+            if opt.save_optimizer and \
+                    not (torch.isnan(loss_epoch) and torch.isfinite(loss_epoch)):
+                torch.save({'optimizer': optimizer.state_dict(),
+                            'scheduler': scheduler.state_dict()},
+                           opt.model_path + 'optimizer.tar')
 
         if opt.nr == 0:
             print(f"Epoch [{epoch}/{opt.epochs}]\t Loss: {loss_epoch / opt.steps}")
@@ -319,6 +322,10 @@ def parse_args():
                         type=str,
                         default='checkpoints/',
                         help='folder to save trained models')
+    parser.add_argument("--save_optimizer",
+                        type=bool,
+                        default=False,
+                        help="")
     parser.add_argument('--temperature',
                         type=float,
                         default=0.1,
