@@ -251,7 +251,7 @@ def run(gpu, opt):
             if opt.save_optimizer:
                 if torch.isnan(torch.tensor(loss_epoch)) \
                          or torch.isfinite(torch.tensor(loss_epoch)):
-                    print("[Err]: nan or infinite loss occurred!")
+                    print("[Err]: nan or infinite loss occurred, exit now!")
                     exit(-1)  # terminate the training
                 else:
                     save_optimizer_path = opt.model_path + "optimizer.tar"
