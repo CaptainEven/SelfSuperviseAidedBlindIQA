@@ -194,7 +194,10 @@ def run(gpu, opt):
     opt.warmup = 0.1
     opt.weight_decay = 1e-4
     opt.iters = opt.steps * opt.epochs
-    optimizer, scheduler = configure_optimizers(opt, model, cur_iter=-1, load_optimizer=False)
+    optimizer, scheduler = configure_optimizers(opt,
+                                                model,
+                                                cur_iter=-1,
+                                                load_optimizer=opt.load_optimizer)
 
     criterion = NT_Xent(opt.batch_size, opt.temperature, opt.device, opt.world_size)
 
@@ -245,14 +248,17 @@ def run(gpu, opt):
             save_model(opt, model, optimizer)
 
             ## ----- save optimizer weights
-            if opt.save_optimizer and \
-                    not (torch.isnan(torch.tensor(loss_epoch))
-                         and torch.isfinite(torch.tensor(loss_epoch))):
-                save_optimizer_path = opt.model_path + "optimizer.tar"
-                torch.save({'optimizer': optimizer.state_dict(),
-                            'scheduler': scheduler.state_dict()},
-                           save_optimizer_path)
-                print("{:s} saved.".format(save_optimizer_path))
+            if opt.save_optimizer:
+                if torch.isnan(torch.tensor(loss_epoch)) \
+                         or torch.isfinite(torch.tensor(loss_epoch)):
+                    print("[Err]: nan or infinite loss occurred!")
+                    exit(-1)  # terminate the training
+                else:
+                    save_optimizer_path = opt.model_path + "optimizer.tar"
+                    torch.save({'optimizer': optimizer.state_dict(),
+                                'scheduler': scheduler.state_dict()},
+                               save_optimizer_path)
+                    print("{:s} saved.".format(save_optimizer_path))
             else:
                 print("[Info]: optimizer not saved.")
 
@@ -345,6 +351,10 @@ def parse_args():
                         type=bool,
                         default=False,  # True
                         help='reload trained model')
+    parser.add_argument("--load_optimizer",
+                        type=bool,
+                        default=False,
+                        help="")
     parser.add_argument('--normalize',
                         type=bool,
                         default=True,
