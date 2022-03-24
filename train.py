@@ -245,9 +245,13 @@ def run(gpu, opt):
 
             if opt.save_optimizer and \
                     not (torch.isnan(loss_epoch) and torch.isfinite(loss_epoch)):
+                save_optimizer_path = opt.model_path + "optimizer.tar"
                 torch.save({'optimizer': optimizer.state_dict(),
                             'scheduler': scheduler.state_dict()},
-                           opt.model_path + 'optimizer.tar')
+                           save_optimizer_path)
+                print("{:s} saved.".format(save_optimizer_path))
+            else:
+                print("[Info]: optimizer not saved.")
 
         if opt.nr == 0:
             print(f"Epoch [{epoch}/{opt.epochs}]\t Loss: {loss_epoch / opt.steps}")
