@@ -194,7 +194,7 @@ def run(gpu, opt):
     opt.warmup = 0.1
     opt.weight_decay = 1e-4
     opt.iters = opt.steps * opt.epochs
-    optimizer, scheduler = configure_optimizers(opt, model, cur_iter=-1)
+    optimizer, scheduler = configure_optimizers(opt, model, cur_iter=-1, load_optimizer=False)
 
     criterion = NT_Xent(opt.batch_size, opt.temperature, opt.device, opt.world_size)
 

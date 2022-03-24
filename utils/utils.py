@@ -432,11 +432,11 @@ def clear_dirs(root, min_limit=2, max_limit=30):
             if len(dir_name) < 7:
                 shutil.rmtree(dir_path)
                 print("\n{:s} removed.\n".format(dir_path))
-            else:
-                f_list = [x for x in os.listdir(dir_path)]
-                if min_limit < len(f_list) <= max_limit:
-                    shutil.rmtree(dir_path)
-                    print("\n{:s} removed.\n".format(dir_path))
+
+            f_list = [x for x in os.listdir(dir_path)]
+            if len(f_list) > max_limit or len(f_list) < min_limit:
+                shutil.rmtree(dir_path)
+                print("\n{:s} removed.\n".format(dir_path))
             progress_bar.update()
 
 
@@ -764,12 +764,12 @@ if __name__ == "__main__":
 
     # gen_train_set(dir_list)
 
-    parse_plates(src_dir="/users/sunshangyun/data/plate_first_data/mainland",
-                 dst_dir="/mnt/diskd/even/plates",
-                 clock_wise=True,
-                 ext=".jpg",
-                 split_dir=True,
-                 logging=False)
+    # parse_plates(src_dir="/users/sunshangyun/data/plate_first_data/mainland",
+    #              dst_dir="/mnt/diskd/even/plates",
+    #              clock_wise=True,
+    #              ext=".jpg",
+    #              split_dir=True,
+    #              logging=False)
     clear_dirs(root="/mnt/diskd/even/plates", min_limit=6, max_limit=25)
 
     print("Done.")
