@@ -740,6 +740,12 @@ def parse_plates(src_dir,
     #         print("{:.3f}% completed.".format((i + 1) / len(item_list)  * 100.0))
 
 
+def clear_score_results(root_dir):
+    """
+    Clear the scores
+    """
+    pass
+
 if __name__ == "__main__":
     # gen_txt_list_of_dir(in_root="/users/zhoukai/data/Plate_char_test1225",
     #                 out_txt_path="../data/test.txt",

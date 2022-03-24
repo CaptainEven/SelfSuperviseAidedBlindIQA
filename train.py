@@ -241,8 +241,10 @@ def run(gpu, opt):
         print(np.round(end - start, 4))
 
         if opt.nr == 0 and epoch % 1 == 0:
+            ## ----- save network weights
             save_model(opt, model, optimizer)
 
+            ## ----- save optimizer weights
             if opt.save_optimizer and \
                     not (torch.isnan(torch.tensor(loss_epoch))
                          and torch.isfinite(torch.tensor(loss_epoch))):
