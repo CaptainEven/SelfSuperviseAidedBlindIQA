@@ -27,20 +27,20 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
-def train(epoch,
-          opt,
-          train_loader_syn,
-          train_loader_ugc,
-          model,
-          criterion,
-          optimizer,
-          scaler,
-          scheduler=None):
+def train_one_epoch(epoch,
+                    opt,
+                    train_loader_syn,
+                    train_loader_ugc,
+                    model,
+                    criterion,
+                    optimizer,
+                    scaler,
+                    scheduler=None):
     """
     Training process
     """
     loss_epoch = 0
-    model.train()
+    model.train()  # train mode
 
     for step, ((syn_i1, syn_i2, dist_label_syn), (ugc_i1, ugc_i2, _)) in \
             enumerate(zip(train_loader_syn, train_loader_ugc)):
@@ -227,15 +227,15 @@ def run(gpu, opt):
     for epoch in range(opt.start_epoch, opt.epochs):
         start = time.time()
 
-        loss_epoch = train(epoch,
-                           opt,
-                           train_loader_syn,
-                           train_loader_ugc,
-                           model,
-                           criterion,
-                           optimizer,
-                           scaler,
-                           scheduler)
+        loss_epoch = train_one_epoch(epoch,
+                                     opt,
+                                     train_loader_syn,
+                                     train_loader_ugc,
+                                     model,
+                                     criterion,
+                                     optimizer,
+                                     scaler,
+                                     scheduler)
 
         end = time.time()
         print(np.round(end - start, 4))
@@ -244,7 +244,8 @@ def run(gpu, opt):
             save_model(opt, model, optimizer)
 
             if opt.save_optimizer and \
-                    not (torch.isnan(loss_epoch) and torch.isfinite(loss_epoch)):
+                    not (torch.isnan(torch.tensor(loss_epoch))
+                         and torch.isfinite(torch.tensor(loss_epoch))):
                 save_optimizer_path = opt.model_path + "optimizer.tar"
                 torch.save({'optimizer': optimizer.state_dict(),
                             'scheduler': scheduler.state_dict()},
@@ -328,7 +329,7 @@ def parse_args():
                         help='folder to save trained models')
     parser.add_argument("--save_optimizer",
                         type=bool,
-                        default=False,
+                        default=True,
                         help="")
     parser.add_argument('--temperature',
                         type=float,
