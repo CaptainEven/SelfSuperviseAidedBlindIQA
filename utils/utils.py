@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import xml.etree.ElementTree as ET
 # from PIL import Image, ImageDraw, ImageFont
 from collections import Counter
 
@@ -9,7 +10,6 @@ import cv2
 import numpy as np
 import torch
 from tqdm import tqdm
-import xml.etree.ElementTree as ET
 
 
 def find_most_free_gpu():
@@ -740,11 +740,31 @@ def parse_plates(src_dir,
     #         print("{:.3f}% completed.".format((i + 1) / len(item_list)  * 100.0))
 
 
-def clear_score_results(root_dir):
+def clear_score_results(root_dir, ext=".jpg"):
     """
     Clear the scores
     """
-    pass
+    if not os.path.isdir(root_dir):
+        print("[Err]: invalid root dir.")
+        return
+
+    sub_dir_paths = [root_dir + "/" + x for x in os.listdir(root_dir)
+                     if os.path.isdir(root_dir + "/" + x)]
+    sub_dir_paths.sort()
+    for sub_dir_path in sub_dir_paths:
+        f_names = [x for x in os.listdir(sub_dir_path) if x.endswith(ext)]
+        for f_name in f_names:
+            items = f_name.split("_")
+
+            if "." in items[0]:
+                f_new_name = "_".join(items[1:])
+                old_f_path = sub_dir_path + "/" + f_name
+                new_f_path = sub_dir_path + "/" + f_new_name
+                os.rename(old_f_path, new_f_path)
+                print("{:s} renamed to {:s}".format(old_f_path, new_f_path))
+            else:
+                print("Skip {:s}".format(f_name))
+
 
 if __name__ == "__main__":
     # gen_txt_list_of_dir(in_root="/users/zhoukai/data/Plate_char_test1225",
@@ -776,6 +796,8 @@ if __name__ == "__main__":
     #              ext=".jpg",
     #              split_dir=True,
     #              logging=False)
-    clear_dirs(root="/mnt/diskd/even/plates", min_limit=6, max_limit=25)
+    # clear_dirs(root="/mnt/diskd/even/plates", min_limit=6, max_limit=25)
+
+    clear_score_results(root_dir="/mnt/diskd/even/plates")
 
     print("Done.")
