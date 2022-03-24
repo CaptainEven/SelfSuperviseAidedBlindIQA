@@ -755,7 +755,6 @@ def clear_score_results(root_dir, ext=".jpg"):
         f_names = [x for x in os.listdir(sub_dir_path) if x.endswith(ext)]
         for f_name in f_names:
             items = f_name.split("_")
-
             if "." in items[0]:
                 f_new_name = "_".join(items[1:])
                 old_f_path = sub_dir_path + "/" + f_name

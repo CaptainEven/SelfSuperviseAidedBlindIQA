@@ -195,7 +195,7 @@ def parse_args():
     ## checkpoint20.tar
     parser.add_argument('--model_path',
                         type=str,
-                        default='checkpoints/checkpoint29.tar',  # pretrained_res50.tar
+                        default='checkpoints/checkpoint0.tar',  # pretrained_res50.tar
                         help='Path to trained CONTRIQUE model',
                         metavar='')
     parser.add_argument('--linear_regressor_path',
