@@ -658,7 +658,7 @@ def resize_lps(save_dir):
             print("[Info]: skip {:s}".format(lp_path))
             continue
 
-        # # Warpping probability 0.2
+        # # Warping probability 0.2
         # if warp_radius > 0.0 and np.random.random() < 0.2:
         #     img = warp_img(img, radius=1.8)
         #     # print('{:s} warpped.'.format(lp_path))
