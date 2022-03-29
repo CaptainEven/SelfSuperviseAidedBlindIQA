@@ -654,6 +654,9 @@ def resize_lps(save_dir):
             img = cv2.resize(img, (192, 64), cv2.INTER_CUBIC)
         elif (w, h) == (440, 220):
             img = cv2.resize(img, (192, 96), cv2.INTER_CUBIC)
+        else:
+            print("[Info]: skip {:s}".format(lp_path))
+            continue
 
         # # Warpping probability 0.2
         # if warp_radius > 0.0 and np.random.random() < 0.2:
@@ -750,13 +753,16 @@ def gen_multi_LPs(save_dir,
 
 if __name__ == '__main__':
     "/mnt/diskc/even/DeepMosaic/imgs/style"
-    gen_multi_LPs(save_dir="g:/ref_plates",
-                  plate_model_path="./plate_model",
-                  font_model_path="./font_model",
-                  csv_path="g:/plates_ref_imgs.csv",
-                  number=10000,
-                  blue_prob=0.9,
-                  blur=False)
+    # gen_multi_LPs(save_dir="g:/ref_plates",
+    #               plate_model_path="./plate_model",
+    #               font_model_path="./font_model",
+    #               csv_path="g:/plates_ref_imgs.csv",
+    #               number=10000,
+    #               blue_prob=0.9,
+    #               blur=False)
+
+    resize_lps(save_dir="g:/ref_plates")
+
     print('Done.')
 
 # elif (w, h) == (440, 140) or (w, h) == (480, 140) and args.size == (192, 64):  # resize
