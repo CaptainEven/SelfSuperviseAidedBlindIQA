@@ -623,6 +623,49 @@ def parse_LP_args():
     return args
 
 
+def resize_lps(save_dir):
+    """
+    Resizing License plate image
+    """
+    if not os.path.isdir(save_dir):
+        print("[Err]: empty dir path.")
+        exit(-1)
+
+    lp_path_list = [save_dir + '/' + x
+                    for x in os.listdir(save_dir)
+                    if x.endswith(".jpg")]
+    print("[Info]: Total {:d} LPs need to be randomly warped..."
+          .format(len(lp_path_list)))
+    for lp_path in tqdm(lp_path_list):
+        if not os.path.isfile(lp_path):
+            print("[Err]: invalid LP path.")
+            continue
+
+        try:
+            # img = cv2.imread(lp_path, cv2.IMREAD_COLOR)
+            img = cv2.imdecode(np.fromfile(lp_path, dtype=np.uint8),
+                               cv2.IMREAD_COLOR)
+            h, w, c = img.shape
+        except Exception as e:
+            print(e)
+
+        ## Do resizing
+        if (w, h) == (440, 140) or (w, h) == (480, 140):
+            img = cv2.resize(img, (192, 64), cv2.INTER_CUBIC)
+        elif (w, h) == (440, 220):
+            img = cv2.resize(img, (192, 96), cv2.INTER_CUBIC)
+
+        # # Warpping probability 0.2
+        # if warp_radius > 0.0 and np.random.random() < 0.2:
+        #     img = warp_img(img, radius=1.8)
+        #     # print('{:s} warpped.'.format(lp_path))
+
+        ## save resized(and warpped) LP image
+        # cv2.imwrite(lp_path, img)
+        cv2.imencode('.jpg', img)[1].tofile(lp_path)
+    # print('Warping done.')
+
+
 def gen_multi_LPs(save_dir,
                   plate_model_path,
                   font_model_path,
@@ -702,49 +745,15 @@ def gen_multi_LPs(save_dir,
 
     ## ----- Resizing and resizing
     if size is not None:
-        lp_path_list = [save_dir + '/' + x
-                        for x in os.listdir(save_dir)
-                        if x.endswith(".jpg")]
-        print("[Info]: Total {:d} LPs need to be randomly warped..."
-              .format(len(lp_path_list)))
-
-        for lp_path in tqdm(lp_path_list):
-            if not os.path.isfile(lp_path):
-                print("[Err]: invalid LP path.")
-                continue
-
-            try:
-                # img = cv2.imread(lp_path, cv2.IMREAD_COLOR)
-                img = cv2.imdecode(np.fromfile(lp_path, dtype=np.uint8),
-                                   cv2.IMREAD_COLOR)
-                h, w, c = img.shape
-            except Exception as e:
-                print(e)
-
-            ## Do resizing
-            if (w, h) == (440, 140) or (w, h) == (480, 140):
-                img = cv2.resize(img, (192, 64), cv2.INTER_CUBIC)
-            elif (w, h) == (440, 220):
-                img = cv2.resize(img, (192, 96), cv2.INTER_CUBIC)
-
-            # # Warpping probability 0.2
-            # if warp_radius > 0.0 and np.random.random() < 0.2:
-            #     img = warp_img(img, radius=1.8)
-            #     # print('{:s} warpped.'.format(lp_path))
-
-            ## save resized(and warpped) LP image
-            # cv2.imwrite(lp_path, img)
-            cv2.imencode('.jpg', img)[1].tofile(lp_path)
-
-        # print('Warping done.')
+        resize_lps(save_dir)
 
 
 if __name__ == '__main__':
     "/mnt/diskc/even/DeepMosaic/imgs/style"
-    gen_multi_LPs(save_dir="F:/ref_plates",
+    gen_multi_LPs(save_dir="g:/ref_plates",
                   plate_model_path="./plate_model",
                   font_model_path="./font_model",
-                  csv_path="f:/plates_ref_imgs.csv",
+                  csv_path="g:/plates_ref_imgs.csv",
                   number=10000,
                   blue_prob=0.9,
                   blur=False)
