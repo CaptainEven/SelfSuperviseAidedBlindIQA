@@ -2,7 +2,6 @@
 import argparse
 import os
 
-import mat4py
 import numpy as np
 import scipy.io as sci_io
 import torch
@@ -26,6 +25,7 @@ def check_live_data(root_path, ext=".bmp"):
     Check whether the number of images
     for each sub_dir is correct
     """
+
     def get_id(x):
         x = x.split(".")[0]
         x = int(x[3:])
@@ -156,14 +156,16 @@ def load_live_mats(root_path, img_path_list, parsed_ref_names):
     # print(parsed_ref_names)
 
     correct_cnt, wrong_cnt = 0, 0
-    for item1, item2 in zip(parsed_ref_names, ref_names):
+    for i, (item1, item2) in enumerate(zip(parsed_ref_names, ref_names)):
         if item1 == item2:
             correct_cnt += 1
         else:
-            wrong_cnt += 1
             print("[Info]: Not equal: {:s}, {:s}".format(item1, item2))
+            print("[Info]: wrong path: {:s}.".format(img_path_list[i]))
+            wrong_cnt += 1
+
     if correct_cnt == len(ref_names):
-        print("[Info]: parsing correctly!")
+        print("[Info]: All parsing correctly!")
     else:
         print("[Info]: total {:d} correct.".format(correct_cnt))
         print("[Info]: total {:d} wrong.".format(wrong_cnt))
