@@ -26,30 +26,59 @@ def check_live_data(root_path, ext=".bmp"):
     Check whether the number of images
     for each sub_dir is correct
     """
+    def get_id(x):
+        x = x.split(".")[0]
+        x = int(x[3:])
+        return x
+
     if not os.path.isdir(root_path):
         print("[Err]: invalid root path: {:s}".format(root_path))
         return
 
+    img_path_list = []
+    parsed_ref_names = []
+
     all_correct = 0
     for k, v in live_dmos_dict.items():
-        # print(k, v)
+        print("[Info]: processing {:s}...".format(k))
 
         sub_dir_path = root_path + "/" + k
         if not os.path.isdir(sub_dir_path):
             print("[Err]: err sub_dir path:{:s}".format(sub_dir_path))
             continue
 
+        ## ----- open info.txt
+        sub_fields = []
+        info_f_path = sub_dir_path + "/info.txt"
+        with open(info_f_path, "r", encoding="utf-8") as f:
+            for line in f.readlines():
+                line = line.strip()
+                if line == "":
+                    continue
+                fields = line.split(" ")
+                ref_name, img_name, score = fields
+                # parsed_ref_names.append(ref_name)
+                sub_fields.append((ref_name, img_name, score))
+        sub_fields = sorted(sub_fields, key=lambda x: get_id(x[1]))
+        # print(sub_fields)
+        for fields in sub_fields:
+            ref_name, img_name, score = fields
+            parsed_ref_names.append(ref_name)
+
         cnt = 0
-        for img_name in os.listdir(sub_dir_path):
-            if not img_name.endswith(ext):
-                continue
+        img_names = [x for x in os.listdir(sub_dir_path) if x.endswith(ext)]
+        img_names = sorted(img_names, key=lambda x: get_id(x))
+        for img_name in img_names:
+            # if not img_name.endswith(ext):
+            #     continue
 
             img_path = sub_dir_path + "/" + img_name
             if not os.path.isfile(img_path):
-                print("")
+                print("[Warning]: invalid image path: {:s}".format(img_path))
                 continue
             else:
                 cnt += 1
+                img_path_list.append(img_path)
 
         if cnt == v:
             print("[Info]: Correct number of images for {:s}".format(k))
@@ -60,6 +89,7 @@ def check_live_data(root_path, ext=".bmp"):
 
     if all_correct == len(live_dmos_dict.items()):
         print("[Info]: all correct!")
+        return img_path_list, parsed_ref_names
 
 
 def count_live_imgs(root_path, ext=".bmp"):
@@ -94,7 +124,7 @@ def count_live_imgs(root_path, ext=".bmp"):
     print("Total {:d} reference images.".format(cnt_ref))
 
 
-def load_live_mats(root_path):
+def load_live_mats(root_path, img_path_list, parsed_ref_names):
     """
     test read in mat file
     """
@@ -111,15 +141,32 @@ def load_live_mats(root_path):
         print("[Err]: invalid path: {:s}".format(mat_ref_names_path))
         exit(-1)
 
-    mat_dmos = mat4py.loadmat(mat_dmos_path)
+    mat_dmos = sci_io.loadmat(mat_dmos_path)
     for item in mat_dmos:
         print(item)
 
     # mat_ref_names = mat4py.loadmat(mat_ref_names_path)
     mat_ref_names = sci_io.loadmat(mat_ref_names_path)
-    print(mat_ref_names)
     ref_names = mat_ref_names["refnames_all"]
-    print(ref_names)
+    ref_names = ref_names[0]
+    ref_names = list(map(lambda x: x.tolist()[0], ref_names))
+    # print(ref_names)
+
+    # print(img_path_list)
+    # print(parsed_ref_names)
+
+    correct_cnt, wrong_cnt = 0, 0
+    for item1, item2 in zip(parsed_ref_names, ref_names):
+        if item1 == item2:
+            correct_cnt += 1
+        else:
+            wrong_cnt += 1
+            print("[Info]: Not equal: {:s}, {:s}".format(item1, item2))
+    if correct_cnt == len(ref_names):
+        print("[Info]: parsing correctly!")
+    else:
+        print("[Info]: total {:d} correct.".format(correct_cnt))
+        print("[Info]: total {:d} wrong.".format(wrong_cnt))
 
 
 def build_net(opt):
@@ -273,7 +320,9 @@ if __name__ == "__main__":
     # gen_train_data_for_live(opt)
 
     # count_live_imgs(root_path="/mnt/diske/databaserelease2")
-    check_live_data(root_path="/mnt/diske/databaserelease2")
+    img_path_list, parsed_ref_names = check_live_data(root_path="/mnt/diske/databaserelease2")
 
     ## ----- parse mat
-    load_live_mats(root_path="/mnt/diske/databaserelease2")
+    load_live_mats(root_path="/mnt/diske/databaserelease2",
+                   img_path_list=img_path_list,
+                   parsed_ref_names=parsed_ref_names)
