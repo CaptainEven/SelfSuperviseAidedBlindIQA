@@ -124,13 +124,16 @@ def count_live_imgs(root_path, ext=".bmp"):
     print("Total {:d} reference images.".format(cnt_ref))
 
 
-def load_live_mats(root_path, img_path_list, parsed_ref_names):
+def gen_train_data_for_live(opt):
     """
     test read in mat file
     """
+    root_path = opt.root_dir
     if not os.path.isdir(root_path):
         print("[Err]: invalid mat dir path: {:s}".format(root_path))
         exit(-1)
+
+    img_path_list, parsed_ref_names = check_live_data(root_path)
 
     mat_dmos_path = root_path + "/dmos.mat"
     mat_ref_names_path = root_path + "/refnames_all.mat"
@@ -141,9 +144,22 @@ def load_live_mats(root_path, img_path_list, parsed_ref_names):
         print("[Err]: invalid path: {:s}".format(mat_ref_names_path))
         exit(-1)
 
+    ## ----- Set up device
+    dev = str(find_most_free_gpu())
+    print("[Info]: Using GPU {:s}.".format(dev))
+    dev = select_device(dev)
+    opt.device = dev
+    dev = opt.device
+
+    ## ----- Build the network
+    net = build_net(opt)
+
     mat_dmos = sci_io.loadmat(mat_dmos_path)
-    for item in mat_dmos:
-        print(item)
+    # for item in mat_dmos:
+        # print(item)
+    dmos_scores = np.squeeze(mat_dmos["dmos"])
+    print(dmos_scores.shape)
+    # dmos_scores = dmos_scores.tolist()
 
     # mat_ref_names = mat4py.loadmat(mat_ref_names_path)
     mat_ref_names = sci_io.loadmat(mat_ref_names_path)
@@ -166,6 +182,35 @@ def load_live_mats(root_path, img_path_list, parsed_ref_names):
 
     if correct_cnt == len(ref_names):
         print("[Info]: All parsing correctly!")
+
+        ## ----- generate LIVE training dataset
+        if opt.use_ref:
+            ref_inds = np.where(dmos_scores == 0.0)
+            dmos_scores[ref_inds] = 100.0
+        else:  # do not use Reference image for training
+            pass
+
+        feature_list = []
+        for img_path, score in zip(img_path_list, dmos_scores):
+            print(img_path, score)
+            feature_vector = get_feature(net, img_path, dev)
+            print(feature_vector)
+            feature_list.append(np.squeeze(feature_vector).tolist())
+        features_np = np.array(feature_list)
+
+        ## ----- serialize the training dataset
+        if os.path.isdir(opt.out_dir):
+            score_save_path = os.path.abspath(opt.out_dir + "/scores.npy")
+            feature_save_path = os.path.abspath(opt.out_dir + "/scores.npy")
+
+            np.save(score_save_path, dmos_scores)
+            print("[Info]: {:s} written.".format(score_save_path))
+
+            np.save(feature_save_path, features_np)
+            print("[Info]: {:s} written.".format(feature_save_path))
+        else:
+            print("[Err]: invalid output dir path: {:s}".format(opt.out_dir))
+
     else:
         print("[Info]: total {:d} correct.".format(correct_cnt))
         print("[Info]: total {:d} wrong.".format(wrong_cnt))
@@ -208,7 +253,7 @@ def get_feature(net, img_path, dev):
     return feat  # 1×4096
 
 
-def gen_train_data_for_live(opt):
+def gen_train_data_for_live_test(opt):
     """
     Generate training dataset for LIVE dataset
     """
@@ -315,6 +360,10 @@ if __name__ == "__main__":
                         default='../checkpoints/checkpoint0.tar',  # pretrained_res50.tar
                         help='Path to trained CONTRIQUE model',
                         metavar='')
+    parser.add_argument("--use_ref",
+                        type=bool,
+                        default=True,
+                        help="")
 
     opt = parser.parse_args()
 
@@ -322,9 +371,7 @@ if __name__ == "__main__":
     # gen_train_data_for_live(opt)
 
     # count_live_imgs(root_path="/mnt/diske/databaserelease2")
-    img_path_list, parsed_ref_names = check_live_data(root_path="/mnt/diske/databaserelease2")
+    # img_path_list, parsed_ref_names = check_live_data(root_path=opt.root_dir)
 
     ## ----- parse mat
-    load_live_mats(root_path="/mnt/diske/databaserelease2",
-                   img_path_list=img_path_list,
-                   parsed_ref_names=parsed_ref_names)
+    gen_train_data_for_live(opt)
