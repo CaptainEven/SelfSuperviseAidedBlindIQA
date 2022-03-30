@@ -5,23 +5,39 @@ import os
 import mat4py
 import numpy as np
 import torch
-
+import scipy.io as sci_io
 from modules.CONTRIQUE_model import DarknetModel
 from modules.network import Darknet
 from utils.utils import select_device, find_most_free_gpu, \
     load_img_pil_to_tensor
 
 
-def test_mat(mat_path):
+def load_live_mats(root_path):
     """
     test read in mat file
     """
-    if not os.path.isfile(mat_path):
-        print("[Err]: invalid mat file path: {:s}".format(mat_path))
+    if not os.path.isdir(root_path):
+        print("[Err]: invalid mat dir path: {:s}".format(root_path))
         exit(-1)
 
-    mat = mat4py.loadmat(mat_path)
-    print(mat)
+    mat_dmos_path = root_path + "/dmos.mat"
+    mat_ref_names_path = root_path + "/refnames_all.mat"
+    if not os.path.isfile(mat_dmos_path):
+        print("[Err]: invalid path: {:s}".format(mat_dmos_path))
+        exit(-1)
+    if not os.path.isfile(mat_ref_names_path):
+        print("[Err]: invalid path: {:s}".format(mat_ref_names_path))
+        exit(-1)
+
+    mat_dmos = mat4py.loadmat(mat_dmos_path)
+    for item in mat_dmos:
+        print(item)
+
+    # mat_ref_names = mat4py.loadmat(mat_ref_names_path)
+    mat_ref_names = sci_io.loadmat(mat_ref_names_path)
+    print(mat_ref_names)
+    ref_names = mat_ref_names["refnames_all"]
+    print(ref_names)
 
 
 def build_net(opt):
@@ -83,7 +99,7 @@ def gen_train_data_for_live(opt):
     for sub_dir_name in os.listdir(opt.root_dir):
         sub_dir_path = opt.root_dir + "/" + sub_dir_name
         if not os.path.isdir(sub_dir_path):
-            print("[Warning]: {:s} is not a dir: {:s}".format(sub_dir_path))
+            print("[Warning]: {:s} is not a dir.".format(sub_dir_path))
             continue
 
         info_f_path = sub_dir_path + "/info.txt"
@@ -91,11 +107,18 @@ def gen_train_data_for_live(opt):
             print("[Warning]: invalid info file path: {:s}".format(info_f_path))
             continue
 
+        cnt = 0
+        feature_list = []
+        score_list = []
+        img_path_list = []
         with open(info_f_path, "r", encoding="utf-8") as f:
-            for line in f.readlines():
+            for i, line in enumerate(f.readlines()):
                 line = line.strip()
                 fields = line.split(" ")
-                ref_name, img_name, score = fields
+                try:
+                    ref_name, img_name, score = fields
+                except Exception as e:
+                    print(e)
 
                 img_path = sub_dir_path + "/" + img_name
                 if not os.path.isfile(img_path):
@@ -103,17 +126,49 @@ def gen_train_data_for_live(opt):
                     continue
 
                 feature_vector = get_feature(net, img_path, dev)
+                feature_vector = np.squeeze(feature_vector)
+                feature_list.append(feature_vector)
+
+                score = float(score)
+                score = 100.0 if score == 0.0 else score
+                score_list.append(score)
+
+                img_path_list.append(img_path)
+
+                cnt += 1
+
+        print("[Info]: total {:d} image samples found.".format(cnt))
+        feature_np = np.array(feature_list)
+        score_np = np.array(score_list)
+        print(feature_np.shape)
+        print(score_np.shape)
+
+        ## ----- serialize the training dataset
+        if os.path.isdir(opt.out_dir):
+            feat_save_path = os.path.abspath(opt.out_dir + "/feats.npy")
+            score_save_path = os.path.abspath(opt.out_dir + "/scores.npy")
+            np.save(feat_save_path, feature_np)
+            np.save(score_save_path, score_np)
+            print("[Info]: {:s} written.".format(feat_save_path))
+            print("[Info]: {:s} written.".format(score_save_path))
+        else:
+            print("[Err]: invalid output dir path: {:s}".format(opt.out_dir))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--root_dir",
                         type=str,
-                        default="",
+                        default="/mnt/diske/databaserelease2",
+                        help="")
+    parser.add_argument("--out_dir",
+                        type=str,
+                        default="../data",
                         help="")
     parser.add_argument("--backbone_cfg",
                         type=str,
-                        default="./yolov4_tiny_backbone.cfg",
+                        default="../yolov4_tiny_backbone.cfg",
                         help="")
     parser.add_argument("--n_features",
                         type=int,
@@ -126,12 +181,14 @@ if __name__ == "__main__":
     ## checkpoint20.tar
     parser.add_argument('--model_path',
                         type=str,
-                        default='checkpoints/checkpoint0.tar',  # pretrained_res50.tar
+                        default='../checkpoints/checkpoint0.tar',  # pretrained_res50.tar
                         help='Path to trained CONTRIQUE model',
                         metavar='')
 
     opt = parser.parse_args()
 
-    gen_train_data_for_live(opt)
+    ## ----- parse info.txt
+    # gen_train_data_for_live(opt)
 
-    test_mat(mat_path="")
+    ## ----- parse mat
+    load_live_mats(root_path="/mnt/diske/databaserelease2")
