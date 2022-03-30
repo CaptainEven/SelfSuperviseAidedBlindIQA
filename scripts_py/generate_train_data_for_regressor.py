@@ -187,7 +187,7 @@ def gen_train_data_for_live(opt):
         if opt.use_ref:
             ref_inds = np.where(dmos_scores == 0.0)
             dmos_scores[ref_inds] = 100.0
-        else:  # do not use Reference image for training
+        else:  # TODO: do not use Reference image for training
             pass
 
         feature_list = []
