@@ -7,42 +7,23 @@ import shutil
 
 import numpy as np
 import torch
-from PIL import Image
-from torchvision import transforms
 from tqdm import tqdm
 
-from modules.CONTRIQUE_model import CONTRIQUE_model, DarknetModel
-from modules.network import get_network
-from utils.utils import select_device, find_most_free_gpu
+from modules.CONTRIQUE_model import DarknetModel
 from modules.network import Darknet
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+from utils.utils import select_device, find_most_free_gpu, \
+    load_img_pil_to_tensor
 
 
-def load_img(img_path, dev):
-    """
-    """
-    # load image
-    image = Image.open(img_path)
-
-    # downscale image by 2
-    sz = image.size
-    image_ds = image.resize((sz[0] // 2, sz[1] // 2))
-
-    # transform to tensor
-    image = transforms.ToTensor()(image).unsqueeze(0).to(dev)
-    image_ds = transforms.ToTensor()(image_ds).unsqueeze(0).to(dev)
-    return image, image_ds
-
-
-def get_score(model, regressor, image, image_ds):
+def get_score(net, regressor, image, image_ds):
     """
     extract feature and regress score
     """
     # extract features
-    model.eval()
+    net.eval()
 
     with torch.no_grad():
-        _, _, _, _, model_feat, model_feat_2, _, _ = model.forward(image, image_ds)
+        _, _, _, _, model_feat, model_feat_2, _, _ = net.forward(image, image_ds)
     feat = np.hstack((model_feat.detach().cpu().numpy(),
                       model_feat_2.detach().cpu().numpy()))
 
@@ -55,12 +36,15 @@ def run(opt):
     """
     Run the demo
     """
+    dev = str(find_most_free_gpu())
+    print("[Info]: Using GPU {:s}.".format(dev))
+    dev = select_device(dev)
+    opt.device = dev
     dev = opt.device
 
     ## ----- load Darknet backbone network
     encoder = Darknet(cfg_path=opt.backbone_cfg, net_size=opt.image_size)
-    opt.n_features = 2048  # get dimensions of fc layer
-    model = DarknetModel(opt, encoder, opt.n_features)
+    net = DarknetModel(opt, encoder, opt.n_features)
 
     # ## ----- load CONTRIQUE network
     # encoder = get_network('resnet50', pretrained=False)
@@ -69,8 +53,9 @@ def run(opt):
 
     ## ----- load Darknet backbone encoder
     print("Loading checkpoint {:s}...".format(opt.model_path))
-    model.load_state_dict(torch.load(opt.model_path, map_location=opt.device.type))
-    model = model.to(dev)
+    net.load_state_dict(torch.load(opt.model_path,
+                                   map_location=opt.device.type))
+    net = net.to(dev)
 
     # load regressor model
     regressor = pickle.load(open(opt.linear_regressor_path, 'rb'))
@@ -98,8 +83,8 @@ def run(opt):
                         print("[Warning]: invalid file path: {:s}".format(img_path))
                         continue
 
-                    image, image_ds = load_img(img_path)
-                    score = get_score(model, regressor, image, image_ds)
+                    image, image_ds = load_img_pil_to_tensor(img_path, dev)
+                    score = get_score(net, regressor, image, image_ds)
                     # print(score)
 
                     if opt.viz:
@@ -115,8 +100,8 @@ def run(opt):
                     progress_bar.update()
 
     elif os.path.isfile(opt.input_path) and opt.input_path.endswith(".jpg"):
-        image, image_ds = load_img(opt.input_path)
-        score = get_score(model, regressor, image, image_ds)
+        image, image_ds = load_img_pil_to_tensor(opt.input_path, dev)
+        score = get_score(net, regressor, image, image_ds)
         print(score)
 
     elif os.path.isdir(opt.input_path):
@@ -134,8 +119,8 @@ def run(opt):
                       .format(len(img_paths), dir_path))
 
                 for img_path in img_paths:
-                    image, image_ds = load_img(img_path, dev)
-                    score = get_score(model, regressor, image, image_ds)
+                    image, image_ds = load_img_pil_to_tensor(img_path, dev)
+                    score = get_score(net, regressor, image, image_ds)
                     # print(score)
 
                     if opt.viz:
@@ -183,15 +168,6 @@ def parse_args():
                         type=tuple,
                         default=(192, 64),  # (256, 256)
                         help='image size')
-    parser.add_argument("--viz",
-                        type=bool,
-                        default=True,
-                        help="")
-    parser.add_argument("--viz_dir",
-                        type=str,
-                        default="./visualize",
-                        help="")
-
     ## checkpoint20.tar
     parser.add_argument('--model_path',
                         type=str,
@@ -203,18 +179,19 @@ def parse_args():
                         default='models/CLIVE.save',
                         help='Path to trained linear regressor',
                         metavar='')
+    parser.add_argument("--viz",
+                        type=bool,
+                        default=True,
+                        help="")
+    parser.add_argument("--viz_dir",
+                        type=str,
+                        default="./visualize",
+                        help="")
 
-    args = parser.parse_args()
-    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    return args
+    opt = parser.parse_args()
+    return opt
 
 
 if __name__ == '__main__':
     opt = parse_args()
-
-    dev = str(find_most_free_gpu())
-    print("[Info]: Using GPU {:s}.".format(dev))
-    dev = select_device(dev)
-    opt.device = dev
-
     run(opt)

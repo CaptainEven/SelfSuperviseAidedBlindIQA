@@ -9,6 +9,8 @@ from collections import Counter
 import cv2
 import numpy as np
 import torch
+from PIL import Image
+from torchvision import transforms
 from tqdm import tqdm
 
 
@@ -174,6 +176,23 @@ def load_darknet_weights(model, weights, cutoff=0):
             nw = conv.weight.numel()  # number of weights
             conv.weight.data.copy_(torch.from_numpy(weights[ptr:ptr + nw]).view_as(conv.weight))
             ptr += nw
+
+
+def load_img_pil_to_tensor(img_path, dev):
+    """
+    Loading
+    """
+    # load image
+    image = Image.open(img_path)
+
+    # downscale image by 2
+    sz = image.size
+    image_ds = image.resize((sz[0] // 2, sz[1] // 2))
+
+    # transform to tensor
+    image = transforms.ToTensor()(image).unsqueeze(0).to(dev)
+    image_ds = transforms.ToTensor()(image_ds).unsqueeze(0).to(dev)
+    return image, image_ds
 
 
 def ivt_tensor_to_img(tensor,

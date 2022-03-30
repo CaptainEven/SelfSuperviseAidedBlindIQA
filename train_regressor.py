@@ -26,8 +26,10 @@ def parse_args():
     Argument Parser
     """
     parser = argparse.ArgumentParser(description="linear regressor")
+
     parser.add_argument('--feat_path',
                         type=str,
+                        default="",
                         help='path to features file')
     parser.add_argument('--ground_truth_path',
                         type=str,
@@ -36,6 +38,7 @@ def parse_args():
                         type=float,
                         default=0.1,
                         help='regularization coefficient')
+
     opt = parser.parse_args()
     return opt
 
