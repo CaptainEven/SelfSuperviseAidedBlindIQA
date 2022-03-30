@@ -4,12 +4,94 @@ import os
 
 import mat4py
 import numpy as np
-import torch
 import scipy.io as sci_io
+import torch
+
 from modules.CONTRIQUE_model import DarknetModel
 from modules.network import Darknet
 from utils.utils import select_device, find_most_free_gpu, \
     load_img_pil_to_tensor
+
+live_dmos_dict = {
+    "jp2k": 227,  # 1: 227
+    "jpeg": 233,  # 1: 233
+    "wn": 174,  # 1: 1774
+    "gblur": 174,  # 1: 174
+    "fastfading": 174,  # 1: 174
+}
+
+
+def check_live_data(root_path, ext=".bmp"):
+    """
+    Check whether the number of images
+    for each sub_dir is correct
+    """
+    if not os.path.isdir(root_path):
+        print("[Err]: invalid root path: {:s}".format(root_path))
+        return
+
+    all_correct = 0
+    for k, v in live_dmos_dict.items():
+        # print(k, v)
+
+        sub_dir_path = root_path + "/" + k
+        if not os.path.isdir(sub_dir_path):
+            print("[Err]: err sub_dir path:{:s}".format(sub_dir_path))
+            continue
+
+        cnt = 0
+        for img_name in os.listdir(sub_dir_path):
+            if not img_name.endswith(ext):
+                continue
+
+            img_path = sub_dir_path + "/" + img_name
+            if not os.path.isfile(img_path):
+                print("")
+                continue
+            else:
+                cnt += 1
+
+        if cnt == v:
+            print("[Info]: Correct number of images for {:s}".format(k))
+            all_correct += 1
+        else:
+            print("[Info]: In-correct number of images for {:s},"
+                  " count: {:d}, value: {:d}".format(k, cnt, v))
+
+    if all_correct == len(live_dmos_dict.items()):
+        print("[Info]: all correct!")
+
+
+def count_live_imgs(root_path, ext=".bmp"):
+    """
+    Count distortion images and reference images
+    """
+    if not os.path.isdir(root_path):
+        print("[Err]: invalid root path: {:s}".format(root_path))
+        return
+
+    cnt_dist, cnt_ref = 0, 0
+    for sub_dir_name in os.listdir(root_path):
+        sub_dir_path = root_path + "/" + sub_dir_name
+        if os.path.isdir(sub_dir_path):
+            if sub_dir_name == "refimgs":
+                for img_name in os.listdir(sub_dir_path):
+                    if img_name.endswith(ext):
+                        cnt_ref += 1
+                    else:
+                        continue
+            else:
+                for img_name in os.listdir(sub_dir_path):
+                    if img_name.endswith(ext):
+                        cnt_dist += 1
+                    else:
+                        continue
+        elif os.path.isfile(sub_dir_path):
+            print("[Info]: skip {:s}".format(sub_dir_path))
+            continue
+
+    print("Total {:d} distortion images.".format(cnt_dist))
+    print("Total {:d} reference images.".format(cnt_ref))
 
 
 def load_live_mats(root_path):
@@ -189,6 +271,9 @@ if __name__ == "__main__":
 
     ## ----- parse info.txt
     # gen_train_data_for_live(opt)
+
+    # count_live_imgs(root_path="/mnt/diske/databaserelease2")
+    check_live_data(root_path="/mnt/diske/databaserelease2")
 
     ## ----- parse mat
     load_live_mats(root_path="/mnt/diske/databaserelease2")
