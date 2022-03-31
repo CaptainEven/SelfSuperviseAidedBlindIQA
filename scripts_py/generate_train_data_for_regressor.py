@@ -185,23 +185,31 @@ def gen_train_data_for_live(opt):
 
         ## ----- generate LIVE training dataset
         if opt.use_ref:
+            print("[Info]: total {:d} images samples.".format(len(ref_names)))
             ref_inds = np.where(dmos_scores == 0.0)
             dmos_scores[ref_inds] = 100.0
         else:  # TODO: do not use Reference image for training
-            pass
+            dist_inds = np.where(dmos_scores != 0.0)
+            print("[Info]: total {:d} images samples.".format(len(dist_inds[0])))
+            dmos_scores = dmos_scores[dist_inds]
+            img_path_list = np.array(img_path_list)[dist_inds]
 
         feature_list = []
         for img_path, score in zip(img_path_list, dmos_scores):
-            print(img_path, score)
             feature_vector = get_feature(net, img_path, dev)
-            print(feature_vector)
+
+            if opt.logging:
+                print("[Info]: processing " + img_path,
+                      "| Score: {:.3f}".format(float(score)))
+                # print(feature_vector)
+
             feature_list.append(np.squeeze(feature_vector).tolist())
         features_np = np.array(feature_list)
 
         ## ----- serialize the training dataset
         if os.path.isdir(opt.out_dir):
             score_save_path = os.path.abspath(opt.out_dir + "/scores.npy")
-            feature_save_path = os.path.abspath(opt.out_dir + "/scores.npy")
+            feature_save_path = os.path.abspath(opt.out_dir + "/feats.npy")
 
             np.save(score_save_path, dmos_scores)
             print("[Info]: {:s} written.".format(score_save_path))
@@ -232,7 +240,7 @@ def build_net(opt):
     net = DarknetModel(opt, encoder, opt.n_features)
 
     ## ----- Load Darknet backbone encoder
-    print("Loading checkpoint {:s}...".format(opt.model_path))
+    print("[Info]: Loading checkpoint {:s}...".format(opt.model_path))
     net.load_state_dict(torch.load(opt.model_path,
                                    map_location=opt.device.type))
     net = net.to(dev)
@@ -361,6 +369,10 @@ if __name__ == "__main__":
                         help='Path to trained CONTRIQUE model',
                         metavar='')
     parser.add_argument("--use_ref",
+                        type=bool,
+                        default=False,
+                        help="")
+    parser.add_argument("--logging",
                         type=bool,
                         default=True,
                         help="")
