@@ -152,15 +152,7 @@ def gen_train_data_for_live(opt):
         if not os.path.isdir(opt.viz_dir):
             os.makedirs(opt.viz_dir)
 
-    ## ----- Set up device
-    dev = str(find_most_free_gpu())
-    print("[Info]: Using GPU {:s}.".format(dev))
-    dev = select_device(dev)
-    opt.device = dev
-    dev = opt.device
-
-    ## ----- Build the network
-    net = build_net(opt)
+    net, dev = set_dev_and_net(opt)
 
     # mat_dmos = mat4py.loadmat(mat_dmos_path)
     mat_dmos = sci_io.loadmat(mat_dmos_path)
@@ -241,6 +233,19 @@ def gen_train_data_for_live(opt):
     else:
         print("[Info]: total {:d} correct.".format(correct_cnt))
         print("[Info]: total {:d} wrong.".format(wrong_cnt))
+
+
+def set_dev_and_net(opt):
+    ## ----- Set up device
+    dev = str(find_most_free_gpu())
+    print("[Info]: Using GPU {:s}.".format(dev))
+    dev = select_device(dev)
+    opt.device = dev
+    dev = opt.device
+
+    ## ----- Build the network
+    net = build_net(opt)
+    return net, dev
 
 
 def build_net(opt):
