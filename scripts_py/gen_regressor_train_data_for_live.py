@@ -13,6 +13,7 @@ from modules.network import Darknet
 from utils.utils import select_device, find_most_free_gpu, \
     load_img_pil_to_tensor
 
+## DMOS值域[0, 100], DMOS越小, 图像质量越高
 
 live_dmos_dict = {
     "jp2k": 227,  # 1: 227
