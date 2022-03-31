@@ -25,7 +25,7 @@ class DarknetModel(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.avgpool_patch = nn.AdaptiveAvgPool2d(patch_dim)
 
-        # MLP for projector
+        ## ----- MLP for projector
         self.projector = nn.Sequential(nn.Linear(self.n_features,
                                                  self.n_features,
                                                  bias=False),

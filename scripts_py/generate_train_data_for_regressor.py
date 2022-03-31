@@ -1,6 +1,7 @@
 # encoding=utf-8
 import argparse
 import os
+import shutil
 
 import numpy as np
 import scipy.io as sci_io
@@ -144,6 +145,10 @@ def gen_train_data_for_live(opt):
         print("[Err]: invalid path: {:s}".format(mat_ref_names_path))
         exit(-1)
 
+    if opt.viz:
+        if not os.path.isdir(opt.viz_dir):
+            os.makedirs(opt.viz_dir)
+
     ## ----- Set up device
     dev = str(find_most_free_gpu())
     print("[Info]: Using GPU {:s}.".format(dev))
@@ -154,9 +159,8 @@ def gen_train_data_for_live(opt):
     ## ----- Build the network
     net = build_net(opt)
 
+    # mat_dmos = mat4py.loadmat(mat_dmos_path)
     mat_dmos = sci_io.loadmat(mat_dmos_path)
-    # for item in mat_dmos:
-    # print(item)
     dmos_scores = np.squeeze(mat_dmos["dmos"])
     print(dmos_scores.shape)
     # dmos_scores = dmos_scores.tolist()
@@ -186,16 +190,16 @@ def gen_train_data_for_live(opt):
         ## ----- generate LIVE training dataset
         if opt.use_ref:
             print("[Info]: total {:d} images samples.".format(len(ref_names)))
-            ref_inds = np.where(dmos_scores == 0.0)
-            dmos_scores[ref_inds] = 100.0
         else:  # do not use Reference image for training
-            dist_inds = np.where(dmos_scores != 0.0)
-            print("[Info]: total {:d} images samples.".format(len(dist_inds[0])))
-            dmos_scores = dmos_scores[dist_inds]
-            img_path_list = np.array(img_path_list)[dist_inds]
+            inds = np.where(dmos_scores != 0.0)
+            print("[Info]: total {:d} images samples.".format(len(inds[0])))
+            dmos_scores = dmos_scores[inds]
+            img_path_list = np.array(img_path_list)[inds]
+
+            ref_names = np.array(ref_names)[inds]
 
         feature_list = []
-        for img_path, score in zip(img_path_list, dmos_scores):
+        for img_path, img_name, score in zip(img_path_list, ref_names, dmos_scores):
             feature_vector = get_feature(net, img_path, dev)
 
             if opt.logging:
@@ -204,6 +208,18 @@ def gen_train_data_for_live(opt):
                 # print(feature_vector)
 
             feature_list.append(np.squeeze(feature_vector).tolist())
+
+            ## ----- visualize
+            if opt.viz:
+                # img_name = os.path.split(img_path)[-1]
+                viz_save_path = opt.viz_dir + "/" \
+                                + img_name[:len(opt.ext)] \
+                                + "_{:.3f}".format(score) + opt.ext
+                viz_save_path = os.path.abspath(viz_save_path)
+                if not os.path.isfile(viz_save_path):
+                    shutil.copyfile(img_path, viz_save_path)
+                    print("{:s} saved.".format(viz_save_path))
+
         features_np = np.array(feature_list)
 
         ## ----- serialize the training dataset
@@ -272,6 +288,18 @@ if __name__ == "__main__":
                         type=str,
                         default="../data",
                         help="")
+    parser.add_argument("--ext",
+                        type=str,
+                        default=".bmp",
+                        help="")
+    parser.add_argument("--viz",
+                        type=bool,
+                        default=True,
+                        help="")
+    parser.add_argument("--viz_dir",
+                        type=str,
+                        default="../visualize",
+                        help="")
     parser.add_argument("--backbone_cfg",
                         type=str,
                         default="../yolov4_tiny_backbone.cfg",
@@ -292,7 +320,7 @@ if __name__ == "__main__":
                         metavar='')
     parser.add_argument("--use_ref",
                         type=bool,
-                        default=True,
+                        default=False,
                         help="")
     parser.add_argument("--logging",
                         type=bool,
