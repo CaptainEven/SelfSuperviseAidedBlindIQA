@@ -5,7 +5,7 @@ import os
 
 import numpy as np
 import scipy.io as sci_io
-from gen_regressor_train_data_for_live import set_dev_and_net
+from gen_regressor_train_data_for_live import set_dev_and_net, get_feature
 
 
 def gen_for_clive(opt):
@@ -55,7 +55,33 @@ def gen_for_clive(opt):
     print("[Info]: total {:d} images.".format(len(img_paths)))
 
     img_scores = np.squeeze(mat_mos["AllMOS_release"])
-    print(img_scores)
+    # print(img_scores)
+
+    feature_list = []
+    for img_path, score in zip(img_paths, img_scores):
+        feature_vector = get_feature(net, img_path, dev)
+
+        if opt.logging:
+            print("[Info]: processing " + img_path,
+                  "| Score: {:.3f}".format(float(score)))
+            # print(feature_vector)
+
+        feature_list.append(np.squeeze(feature_vector).tolist())
+
+    features_np = np.array(feature_list)
+
+    ## ----- serialize the training dataset
+    if os.path.isdir(opt.out_dir):
+        score_save_path = os.path.abspath(opt.out_dir + "/scores_clive.npy")
+        feature_save_path = os.path.abspath(opt.out_dir + "/feats_clive.npy")
+
+        np.save(score_save_path, img_scores)
+        print("[Info]: {:s} written.".format(score_save_path))
+
+        np.save(feature_save_path, features_np)
+        print("[Info]: {:s} written.".format(feature_save_path))
+    else:
+        print("[Err]: invalid output dir path: {:s}".format(opt.out_dir))
 
 
 if __name__ == "__main__":
