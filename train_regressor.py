@@ -15,10 +15,13 @@ def run(opt):
     scores = np.load(opt.ground_truth_path)
 
     # train regression
+    print("[Info]: start training score regressor...")
     reg = Ridge(alpha=opt.alpha).fit(feat, scores)
+    print("[Info]: score regressor training done.")
 
-    with open('lin_regressor.save', 'wb') as f:
+    with open(opt.save_path, 'wb', encoding="utf-8") as f:
         pickle.dump(reg, f)
+    print("[Info]: {:s} saved.".format(opt.save_path))
 
 
 def parse_args():
@@ -29,11 +32,15 @@ def parse_args():
 
     parser.add_argument('--feat_path',
                         type=str,
-                        default="",
+                        default="./data/feats.npy",
                         help='path to features file')
     parser.add_argument('--ground_truth_path',
                         type=str,
+                        default="./data/scores.npy",
                         help='path to ground truth scores')
+    parser.add_argument("--save_path",
+                        type=str,
+                        default="./models/my_live.save")
     parser.add_argument('--alpha',
                         type=float,
                         default=0.1,
@@ -44,5 +51,5 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    run(args)
+    opt = parse_args()
+    run(opt)
