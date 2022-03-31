@@ -49,20 +49,17 @@ def gen_for_clive(opt):
 
     mat_img = sci_io.loadmat(AllImages_release_mat_path)
     mat_mos = sci_io.loadmat(AllMOS_release_mat_path)
-    # print(mat_img)
-    # print(mat_mos)
 
     img_names = list(map(lambda x: x[0].tolist(),
                          np.squeeze(mat_img["AllImages_release"]).tolist()))
-    print(img_names)
 
     ## ----- Build img paths
     img_paths = [img_dir + "/" + x for x in img_names
                  if os.path.isfile(img_dir + "/" + x)]
     print("[Info]: total {:d} images.".format(len(img_paths)))
 
+    ## ----- Get image scores
     img_scores = np.squeeze(mat_mos["AllMOS_release"])
-    # print(img_scores)
 
     feature_list = []
     for img_path, score in zip(img_paths, img_scores):
