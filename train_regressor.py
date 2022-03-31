@@ -1,6 +1,7 @@
 # encoding=utf-8
 
 import argparse
+import os
 import pickle
 
 import numpy as np
@@ -12,16 +13,19 @@ def run(opt):
     Run the regressor training
     """
     feat = np.load(opt.feat_path)
+    print("[Info]: {:s} loaded.".format(os.path.abspath(opt.feat_path)))
+
     scores = np.load(opt.ground_truth_path)
+    print("[Info]: {:s} loaded.".format(os.path.abspath(opt.ground_truth_path)))
 
     # train regression
     print("[Info]: start training score regressor...")
     reg = Ridge(alpha=opt.alpha).fit(feat, scores)
     print("[Info]: score regressor training done.")
 
-    with open(opt.save_path, 'wb', encoding="utf-8") as f:
+    with open(opt.save_path, 'wb') as f:
         pickle.dump(reg, f)
-    print("[Info]: {:s} saved.".format(opt.save_path))
+    print("[Info]: {:s} saved.".format(os.path.abspath(opt.save_path)))
 
 
 def parse_args():

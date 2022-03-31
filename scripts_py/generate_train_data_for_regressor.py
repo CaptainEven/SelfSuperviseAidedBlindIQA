@@ -292,7 +292,7 @@ if __name__ == "__main__":
                         metavar='')
     parser.add_argument("--use_ref",
                         type=bool,
-                        default=False,
+                        default=True,
                         help="")
     parser.add_argument("--logging",
                         type=bool,

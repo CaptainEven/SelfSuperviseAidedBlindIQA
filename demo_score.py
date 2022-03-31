@@ -176,7 +176,7 @@ def parse_args():
                         metavar='')
     parser.add_argument('--linear_regressor_path',
                         type=str,
-                        default='models/CLIVE.save',
+                        default='models/my_live.save',
                         help='Path to trained linear regressor',
                         metavar='')
     parser.add_argument("--viz",
