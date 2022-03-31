@@ -174,10 +174,10 @@ def parse_args():
                         default='checkpoints/checkpoint0.tar',  # pretrained_res50.tar
                         help='Path to trained CONTRIQUE model',
                         metavar='')
-    parser.add_argument('--linear_regressor_path',
+    parser.add_argument("--linear_regressor_path",
                         type=str,
-                        default='models/my_live.save',
-                        help='Path to trained linear regressor',
+                        default="models/my_clive.save",
+                        help="Path to trained linear regressor",
                         metavar='')
     parser.add_argument("--viz",
                         type=bool,

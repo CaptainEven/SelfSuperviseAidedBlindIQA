@@ -2,9 +2,11 @@
 
 import argparse
 import os
+import shutil
 
 import numpy as np
 import scipy.io as sci_io
+
 from gen_regressor_train_data_for_live import set_dev_and_net, get_feature
 
 
@@ -35,6 +37,11 @@ def gen_for_clive(opt):
     if not os.path.isfile(AllMOS_release_mat_path):
         print("[Err]: invalid path: {:s}.".format(AllMOS_release_mat_path))
         exit(-1)
+
+    if opt.viz:
+        if os.path.isdir(opt.viz_dir):
+            shutil.rmtree(opt.viz_dir)
+        os.makedirs(opt.viz_dir)
 
     ## ----- Set up network and device
     net, dev = set_dev_and_net(opt)
@@ -67,6 +74,17 @@ def gen_for_clive(opt):
             # print(feature_vector)
 
         feature_list.append(np.squeeze(feature_vector).tolist())
+
+        ## ----- visualize
+        if opt.viz:
+            img_name = os.path.split(img_path)[-1]
+            viz_save_path = opt.viz_dir + "/" \
+                            + img_name[:-len(opt.ext)] \
+                            + "_{:.3f}".format(score) + opt.ext
+            viz_save_path = os.path.abspath(viz_save_path)
+            if not os.path.isfile(viz_save_path):
+                shutil.copyfile(img_path, viz_save_path)
+                print("{:s} saved.".format(viz_save_path))
 
     features_np = np.array(feature_list)
 

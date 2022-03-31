@@ -149,10 +149,13 @@ def gen_train_data_for_live(opt):
         exit(-1)
 
     if opt.viz:
-        if not os.path.isdir(opt.viz_dir):
-            os.makedirs(opt.viz_dir)
+        if os.path.isdir(opt.viz_dir):
+            shutil.rmtree(opt.viz_dir)
+        os.makedirs(opt.viz_dir)
 
+    ## ----- Set up network and device
     net, dev = set_dev_and_net(opt)
+    ## -----
 
     # mat_dmos = mat4py.loadmat(mat_dmos_path)
     mat_dmos = sci_io.loadmat(mat_dmos_path)
@@ -206,9 +209,8 @@ def gen_train_data_for_live(opt):
 
             ## ----- visualize
             if opt.viz:
-                # img_name = os.path.split(img_path)[-1]
                 viz_save_path = opt.viz_dir + "/" \
-                                + img_name[:len(opt.ext)] \
+                                + img_name[:-len(opt.ext)] \
                                 + "_{:.3f}".format(score) + opt.ext
                 viz_save_path = os.path.abspath(viz_save_path)
                 if not os.path.isfile(viz_save_path):

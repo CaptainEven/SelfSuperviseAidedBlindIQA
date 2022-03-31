@@ -36,15 +36,15 @@ def parse_args():
 
     parser.add_argument('--feat_path',
                         type=str,
-                        default="./data/feats.npy",
+                        default="./data/feats_clive.npy",
                         help='path to features file')
     parser.add_argument('--ground_truth_path',
                         type=str,
-                        default="./data/scores.npy",
+                        default="./data/scores_clive.npy",
                         help='path to ground truth scores')
     parser.add_argument("--save_path",
                         type=str,
-                        default="./models/my_live.save")
+                        default="./models/my_clive.save")
     parser.add_argument('--alpha',
                         type=float,
                         default=0.1,
