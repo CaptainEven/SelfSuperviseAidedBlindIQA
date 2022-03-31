@@ -156,7 +156,7 @@ def gen_train_data_for_live(opt):
 
     mat_dmos = sci_io.loadmat(mat_dmos_path)
     # for item in mat_dmos:
-        # print(item)
+    # print(item)
     dmos_scores = np.squeeze(mat_dmos["dmos"])
     print(dmos_scores.shape)
     # dmos_scores = dmos_scores.tolist()
@@ -188,7 +188,7 @@ def gen_train_data_for_live(opt):
             print("[Info]: total {:d} images samples.".format(len(ref_names)))
             ref_inds = np.where(dmos_scores == 0.0)
             dmos_scores[ref_inds] = 100.0
-        else:  # TODO: do not use Reference image for training
+        else:  # do not use Reference image for training
             dist_inds = np.where(dmos_scores != 0.0)
             print("[Info]: total {:d} images samples.".format(len(dist_inds[0])))
             dmos_scores = dmos_scores[dist_inds]
@@ -259,84 +259,6 @@ def get_feature(net, img_path, dev):
     feat = np.hstack((feat1.detach().cpu().numpy(),
                       feat2.detach().cpu().numpy()))
     return feat  # 1×4096
-
-
-def gen_train_data_for_live_test(opt):
-    """
-    Generate training dataset for LIVE dataset
-    """
-    if not os.path.isdir(opt.root_dir):
-        print("[Err]: invalid root dir path: {:s}".format(opt.root_dir))
-        exit(-1)
-
-    ## ----- Set up device
-    dev = str(find_most_free_gpu())
-    print("[Info]: Using GPU {:s}.".format(dev))
-    dev = select_device(dev)
-    opt.device = dev
-    dev = opt.device
-
-    ## ----- Build the network
-    net = build_net(opt)
-
-    ## ----- Traverse root dir and generate training dataset
-    for sub_dir_name in os.listdir(opt.root_dir):
-        sub_dir_path = opt.root_dir + "/" + sub_dir_name
-        if not os.path.isdir(sub_dir_path):
-            print("[Warning]: {:s} is not a dir.".format(sub_dir_path))
-            continue
-
-        info_f_path = sub_dir_path + "/info.txt"
-        if not os.path.isfile(info_f_path):
-            print("[Warning]: invalid info file path: {:s}".format(info_f_path))
-            continue
-
-        cnt = 0
-        feature_list = []
-        score_list = []
-        img_path_list = []
-        with open(info_f_path, "r", encoding="utf-8") as f:
-            for i, line in enumerate(f.readlines()):
-                line = line.strip()
-                fields = line.split(" ")
-                try:
-                    ref_name, img_name, score = fields
-                except Exception as e:
-                    print(e)
-
-                img_path = sub_dir_path + "/" + img_name
-                if not os.path.isfile(img_path):
-                    print("[Warning]: invalid image path: {:s}".format(img_path))
-                    continue
-
-                feature_vector = get_feature(net, img_path, dev)
-                feature_vector = np.squeeze(feature_vector)
-                feature_list.append(feature_vector)
-
-                score = float(score)
-                score = 100.0 if score == 0.0 else score
-                score_list.append(score)
-
-                img_path_list.append(img_path)
-
-                cnt += 1
-
-        print("[Info]: total {:d} image samples found.".format(cnt))
-        feature_np = np.array(feature_list)
-        score_np = np.array(score_list)
-        print(feature_np.shape)
-        print(score_np.shape)
-
-        ## ----- serialize the training dataset
-        if os.path.isdir(opt.out_dir):
-            feat_save_path = os.path.abspath(opt.out_dir + "/feats.npy")
-            score_save_path = os.path.abspath(opt.out_dir + "/scores.npy")
-            np.save(feat_save_path, feature_np)
-            np.save(score_save_path, score_np)
-            print("[Info]: {:s} written.".format(feat_save_path))
-            print("[Info]: {:s} written.".format(score_save_path))
-        else:
-            print("[Err]: invalid output dir path: {:s}".format(opt.out_dir))
 
 
 if __name__ == "__main__":
