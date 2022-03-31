@@ -1,4 +1,5 @@
 # encoding=utf-8
+
 import argparse
 import os
 import shutil
@@ -11,6 +12,7 @@ from modules.CONTRIQUE_model import DarknetModel
 from modules.network import Darknet
 from utils.utils import select_device, find_most_free_gpu, \
     load_img_pil_to_tensor
+
 
 live_dmos_dict = {
     "jp2k": 227,  # 1: 227

@@ -8,10 +8,23 @@ from collections import Counter
 
 import cv2
 import numpy as np
+import scipy.io as sci_io
 import torch
 from PIL import Image
 from torchvision import transforms
 from tqdm import tqdm
+
+
+def load_and_print_mat(mat_path):
+    """
+    load and print a .mat file
+    """
+    if not os.path.isfile(mat_path):
+        print("[Err]: invalid mat file path: {:s}.".format(mat_path))
+        exit(-1)
+
+    mat = sci_io.loadmat(mat_path)
+    print(mat)
 
 
 def find_most_free_gpu():
