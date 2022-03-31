@@ -70,7 +70,8 @@ def parse_args():
     parser.add_argument('--model_path',
                         type=str,
                         default='models/checkpoint25.tar',
-                        help='Path to trained CONTRIQUE model', metavar='')
+                        help='Path to trained CONTRIQUE model',
+                        metavar='')
     parser.add_argument('--feature_save_path',
                         type=str,
                         default='features.npy',
