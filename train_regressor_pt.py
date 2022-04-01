@@ -53,7 +53,8 @@ def run(opt):
     dev = opt.device
 
     ## ----- Set up the network: mlp
-    net = torch.nn.Linear(opt.input_size, 1)
+    net = torch.nn.Sequential(torch.nn.Linear(opt.input_size, 1024),
+                              torch.nn.Linear(1024, 1))
     net = net.to(dev)
 
     ## ----- Set up the dataset and loader
@@ -84,12 +85,14 @@ def run(opt):
             feat, score = feat.to(dev), score.to(dev)
 
             pred = net.forward(feat)
-            # print(pred.shape)
 
-            loss = loss_func(pred, score)
+            loss = loss_func(pred, score) / opt.batch_size
             if (batch + 1) % opt.print_freq == 0:
-                print("Epoch {:03d} | batch {:03d} | loss {:5.3f}"
-                      .format(epoch + 1, batch + 1, loss.item()))
+                print("Epoch {:03d} | batch {:03d} | loss {:5.3f} | lr {:.5f}"
+                      .format(epoch + 1,
+                              batch + 1,
+                              loss.item(),
+                              optimizer.param_groups[0]["lr"]))
 
             epoch_loss.append(loss.item())
 
@@ -139,7 +142,7 @@ if __name__ == "__main__":
                         help="")
     parser.add_argument("--lr",
                         type=float,
-                        default=1e-4,
+                        default=1e-3,
                         help="")
     parser.add_argument("--n_epoch",
                         type=int,
@@ -151,7 +154,7 @@ if __name__ == "__main__":
                         help="")
     parser.add_argument("--print_freq",
                         type=int,
-                        default=50,
+                        default=10,
                         help="")
     parser.add_argument("--save_freq",
                         type=int,
