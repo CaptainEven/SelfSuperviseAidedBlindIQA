@@ -13,6 +13,7 @@ from modules.CONTRIQUE_model import DarknetModel
 from modules.network import Darknet
 from utils.utils import select_device, find_most_free_gpu, \
     load_img_pil_to_tensor
+from train_regressor_pt import RegressorPt
 
 
 def get_score(net, regressor, image, image_ds):
@@ -41,13 +42,10 @@ def get_score_pt(net, regressor_pt, image, image_ds):
 
     with torch.no_grad():
         _, _, _, _, feat_1, feat_2, _, _ = net.forward(image, image_ds)
-    # feat = np.hstack((feat_1.detach().cpu().numpy(),
-    #                   feat_2.detach().cpu().numpy()))
     feat = torch.cat((feat_1, feat_2), dim=1)
-    print(feat.shape)
 
     # regress score
-    score = regressor_pt.predict(feat)[0]
+    score = regressor_pt.forward(feat)[0]
     return score
 
 
@@ -80,8 +78,8 @@ def run(opt):
     if opt.regressor_type == "old":
         regressor = pickle.load(open(opt.regressor_path, 'rb'))
     elif opt.regressor_type == "new":
-        # regressor =
-        pass
+        regressor = RegressorPt(4096, 1024).to(dev)
+        regressor.load_state_dict(torch.load(opt.regressor_path))
     print("[Info]: {:s} loaded.".format(os.path.abspath(opt.regressor_path)))
 
     print("[Info]: Start scoring...")
@@ -143,7 +141,12 @@ def run(opt):
 
                 for img_path in img_paths:
                     image, image_ds = load_img_pil_to_tensor(img_path, dev)
-                    score = get_score(net, regressor, image, image_ds)
+
+                    if opt.regressor_type == "old":
+                        score = get_score(net, regressor, image, image_ds)
+                    elif opt.regressor_type == "new":
+                        score = get_score_pt(net, regressor, image, image_ds)
+                        score = float(score)
                     # print(score)
 
                     if opt.viz:
@@ -199,7 +202,7 @@ def parse_args():
                         metavar='')
     parser.add_argument("--regressor_type",
                         type=str,
-                        default="old",  # old | new
+                        default="new",  # old | new
                         help="")
 
     ## models/my_koniq10_small.save
