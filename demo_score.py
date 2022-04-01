@@ -176,7 +176,7 @@ def parse_args():
                         metavar='')
     parser.add_argument("--linear_regressor_path",
                         type=str,
-                        default="models/my_clive.save",
+                        default="models/my_koniq10_small.save",
                         help="Path to trained linear regressor",
                         metavar='')
     parser.add_argument("--viz",

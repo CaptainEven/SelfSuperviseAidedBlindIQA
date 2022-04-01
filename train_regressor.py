@@ -12,7 +12,7 @@ def run(opt):
     """
     Run the regressor training
     """
-    feat = np.load(opt.feat_path)
+    feats = np.load(opt.feat_path)
     print("[Info]: {:s} loaded.".format(os.path.abspath(opt.feat_path)))
 
     scores = np.load(opt.ground_truth_path)
@@ -20,7 +20,7 @@ def run(opt):
 
     # train regression
     print("[Info]: start training score regressor...")
-    reg = Ridge(alpha=opt.alpha).fit(feat, scores)
+    reg = Ridge(alpha=opt.alpha).fit(feats, scores)
     print("[Info]: score regressor training done.")
 
     with open(opt.save_path, 'wb') as f:
@@ -36,15 +36,15 @@ def parse_args():
 
     parser.add_argument('--feat_path',
                         type=str,
-                        default="./data/feats_clive.npy",
+                        default="./data/my_feats_koniq10k.npy",
                         help='path to features file')
     parser.add_argument('--ground_truth_path',
                         type=str,
-                        default="./data/scores_clive.npy",
+                        default="./data/my_scores_koniq10k.npy",
                         help='path to ground truth scores')
     parser.add_argument("--save_path",
                         type=str,
-                        default="./models/my_clive.save")
+                        default="./models/my_koniq10_small.save")
     parser.add_argument('--alpha',
                         type=float,
                         default=0.1,

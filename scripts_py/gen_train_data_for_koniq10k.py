@@ -5,37 +5,40 @@ import os
 import shutil
 
 import numpy as np
-import scipy.io as sci_io
-
+from tqdm import tqdm
 from gen_regressor_train_data_for_live import set_dev_and_net, get_feature
 
 
-def gen_for_clive(opt):
+def generate(opt):
     """
-    Generate dataset for CLIVE dataset
+    Generate dataset
     """
     root_path = opt.root_dir
     if not os.path.isdir(root_path):
         print("[Err]: invalid root path: {:s}".format(root_path))
         exit(-1)
 
-    mat_dir = root_path + "/Data"
-    if not os.path.isdir(mat_dir):
-        print("[Err]: invalid mat dir path: {:s}.".format(mat_dir))
+    if opt.type == "small":
+        img_dir = root_path + "/small/512x384"
+        if not os.path.isdir(img_dir):
+            print("[Err]: invalid image dir path: {:s}"
+                  .format(os.path.abspath(img_dir)))
+            exit(-1)
+    elif opt.type == "full":
+        img_dir = root_path + "/fill/1024x768"
+        if not os.path.isdir(img_dir):
+            print("[Err]: invalid image dir path: {:s}"
+                  .format(os.path.abspath(img_dir)))
+            exit(-1)
+    else:
+        print("[Info]: wrong data type!")
         exit(-1)
 
-    img_dir = root_path + "/Images"
-    if not os.path.isdir(img_dir):
-        print("[Err]: invalid image dir path: {:s}.".format(img_dir))
-        exit(-1)
-
-    AllImages_release_mat_path = mat_dir + "/AllImages_release.mat"
-    if not os.path.isfile(AllImages_release_mat_path):
-        print("[Err]: invalid path: {:s}.".format(AllImages_release_mat_path))
-        exit(-1)
-    AllMOS_release_mat_path = mat_dir + "/AllMOS_release.mat"
-    if not os.path.isfile(AllMOS_release_mat_path):
-        print("[Err]: invalid path: {:s}.".format(AllMOS_release_mat_path))
+    name_score_f_path = root_path \
+                        + "/koniq10k_scores_and_distributions.csv"
+    if not os.path.isfile(name_score_f_path):
+        print("[Info]: invalid file path: {:s}"
+              .format(os.path.abspath(name_score_f_path)))
         exit(-1)
 
     if opt.viz:
@@ -47,43 +50,51 @@ def gen_for_clive(opt):
     net, dev = set_dev_and_net(opt)
     ## -----
 
-    mat_img = sci_io.loadmat(AllImages_release_mat_path)
-    mat_mos = sci_io.loadmat(AllMOS_release_mat_path)
+    img_paths, scores, features = [], [], []
 
-    img_names = list(map(lambda x: x[0].tolist(),
-                         np.squeeze(mat_img["AllImages_release"]).tolist()))
+    with open(name_score_f_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        with tqdm(total=len(lines)) as progress_bar:
+            for i, line in enumerate(lines):
+                if i == 0:
+                    field_names = line.split(",")
+                    print(field_names)
+                else:
+                    line = line.strip()
+                    fields = line.split(",")
+                    score = float(fields[-1])
+                    scores.append(score)
 
-    ## ----- Build img paths
-    img_paths = [img_dir + "/" + x for x in img_names
-                 if os.path.isfile(img_dir + "/" + x)]
-    print("[Info]: total {:d} images.".format(len(img_paths)))
+                    img_name = fields[0]
+                    img_name = img_name.replace('"', '')
+                    img_path = img_dir + "/" + img_name
+                    if not os.path.isfile(img_path):
+                        print("[Warning]: invalid file path: {:s}"
+                              .format(img_path))
+                        continue
 
-    ## ----- Get image scores
-    img_scores = np.squeeze(mat_mos["AllMOS_release"])
+                    if opt.logging:
+                        print("\n[Info]: processing " + img_path,
+                              "| Score: {:.3f}\n".format(score))
 
-    feature_list = []
-    for img_path, score in zip(img_paths, img_scores):
-        feature_vector = get_feature(net, img_path, dev)
+                    feature_vector = get_feature(net, img_path, dev)
+                    features.append(np.squeeze(feature_vector))
 
-        if opt.logging:
-            print("[Info]: processing " + img_path,
-                  "| Score: {:.3f}".format(float(score)))
-            # print(feature_vector)
+                    ## ----- visualize
+                    if opt.viz:
+                        img_name = os.path.split(img_path)[-1]
+                        viz_save_path = opt.viz_dir + "/" \
+                                        + img_name[:-len(opt.ext)] \
+                                        + "_{:.3f}".format(score) + opt.ext
+                        viz_save_path = os.path.abspath(viz_save_path)
+                        if not os.path.isfile(viz_save_path):
+                            shutil.copyfile(img_path, viz_save_path)
+                            print("{:s} saved.".format(viz_save_path))
 
-        feature_list.append(np.squeeze(feature_vector).tolist())
+                progress_bar.update()
 
-        ## ----- visualize
-        if opt.viz:
-            img_name = os.path.split(img_path)[-1]
-            viz_save_path = opt.viz_dir + "/" \
-                            + img_name[:-len(opt.ext)] \
-                            + "_{:.3f}".format(score) + opt.ext
-            viz_save_path = os.path.abspath(viz_save_path)
-            if not os.path.isfile(viz_save_path):
-                shutil.copyfile(img_path, viz_save_path)
-                print("{:s} saved.".format(viz_save_path))
-
-    features_np = np.array(feature_list)
+    features = np.array(features)
+    scores = np.array(scores)
 
     ## ----- serialize the training dataset
     if os.path.isdir(opt.out_dir):
@@ -92,10 +103,10 @@ def gen_for_clive(opt):
         feature_save_path = os.path.abspath(opt.out_dir + "/my_feats_{:s}.npy"
                                             .format(opt.name))
 
-        np.save(score_save_path, img_scores)
+        np.save(score_save_path, scores)
         print("[Info]: {:s} written.".format(score_save_path))
 
-        np.save(feature_save_path, features_np)
+        np.save(feature_save_path, features)
         print("[Info]: {:s} written.".format(feature_save_path))
     else:
         print("[Err]: invalid output dir path: {:s}".format(opt.out_dir))
@@ -106,15 +117,19 @@ if __name__ == "__main__":
 
     parser.add_argument("--root_dir",
                         type=str,
-                        default="/mnt/diske/ChallengeDB_release/ChallengeDB_release",
+                        default="/mnt/diske/koniq10k",
                         help="")
     parser.add_argument("--name",
                         type=str,
-                        default="clive",
+                        default="koniq10k",
                         help="")
     parser.add_argument("--out_dir",
                         type=str,
                         default="../data",
+                        help="")
+    parser.add_argument("--type",
+                        type=str,
+                        default="small",
                         help="")
     parser.add_argument("--ext",
                         type=str,
@@ -157,5 +172,5 @@ if __name__ == "__main__":
 
     opt = parser.parse_args()
 
-    gen_for_clive(opt)
+    generate(opt)
     print("Done.")
