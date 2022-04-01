@@ -1,10 +1,12 @@
 # encoding=utf-8
 
 import argparse
+import math
 import os
 
 import numpy as np
 import torch
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.data import Dataset
 
 from utils.utils import find_most_free_gpu, select_device
@@ -67,6 +69,10 @@ def run(opt):
     ## ----- Set up optimizer
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr)
 
+    lf = lambda x: (((1 + math.cos(x * math.pi / opt.n_epoch)) / 2) ** 1.0) \
+                   * 0.95 + 0.05  # cosine
+    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+
     ## ----- Set up loss function
     loss_func = torch.nn.MSELoss().to(dev)
 
@@ -94,6 +100,9 @@ def run(opt):
         print("[Info]: Average loss of epoch {:04d} is {:.5f}"
               .format(epoch + 1,
                       np.mean(np.array(epoch_loss))))
+
+        ## ---------- update learning rate
+        scheduler.step()
 
         if (epoch + 1) % opt.save_freq == 0:
             save_ckpt_path = opt.ckpt_dir + "/regressor_latest.pt"
