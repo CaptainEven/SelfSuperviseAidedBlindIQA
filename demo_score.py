@@ -32,6 +32,25 @@ def get_score(net, regressor, image, image_ds):
     return score
 
 
+def get_score_pt(net, regressor_pt, image, image_ds):
+    """
+    extract feature and regress score
+    """
+    # extract features
+    net.eval()
+
+    with torch.no_grad():
+        _, _, _, _, feat_1, feat_2, _, _ = net.forward(image, image_ds)
+    # feat = np.hstack((feat_1.detach().cpu().numpy(),
+    #                   feat_2.detach().cpu().numpy()))
+    feat = torch.cat((feat_1, feat_2), dim=1)
+    print(feat.shape)
+
+    # regress score
+    score = regressor_pt.predict(feat)[0]
+    return score
+
+
 def run(opt):
     """
     Run the demo
@@ -57,11 +76,15 @@ def run(opt):
                                    map_location=opt.device.type))
     net = net.to(dev)
 
-    # load regressor model
-    regressor = pickle.load(open(opt.linear_regressor_path, 'rb'))
-    print("Models loaded.")
+    ## ----- load regressor model
+    if opt.regressor_type == "old":
+        regressor = pickle.load(open(opt.regressor_path, 'rb'))
+    elif opt.regressor_type == "new":
+        # regressor =
+        pass
+    print("[Info]: {:s} loaded.".format(os.path.abspath(opt.regressor_path)))
 
-    print("Start scoring...")
+    print("[Info]: Start scoring...")
     if os.path.isfile(opt.input_path) and opt.input_path.endswith(".txt"):
         if opt.viz:
             if not os.path.isdir(opt.viz_dir):
@@ -174,9 +197,15 @@ def parse_args():
                         default='checkpoints/checkpoint0.tar',  # pretrained_res50.tar
                         help='Path to trained CONTRIQUE model',
                         metavar='')
-    parser.add_argument("--linear_regressor_path",
+    parser.add_argument("--regressor_type",
                         type=str,
-                        default="models/my_koniq10_small.save",
+                        default="old",  # old | new
+                        help="")
+
+    ## models/my_koniq10_small.save
+    parser.add_argument("--regressor_path",
+                        type=str,
+                        default="models/regressor_latest.pt",
                         help="Path to trained linear regressor",
                         metavar='')
     parser.add_argument("--viz",

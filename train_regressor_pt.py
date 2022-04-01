@@ -41,6 +41,22 @@ class RegressorDataset(Dataset):
         return self.n
 
 
+class RegressorPt(torch.nn.Module):
+    def __init__(self, in_size, hidden_size=1024):
+        """
+        Init
+        """
+        super(RegressorPt, self).__init__()
+        self.linear = torch.nn.Sequential(torch.nn.Linear(in_size, hidden_size),
+                                          torch.nn.Linear(hidden_size, 1))
+
+    def forward(self, x):
+        """
+        Forward pass
+        """
+        return self.linear.forward(x)
+
+
 def run(opt):
     """
     Run the regressor training
@@ -53,9 +69,22 @@ def run(opt):
     dev = opt.device
 
     ## ----- Set up the network: mlp
-    net = torch.nn.Sequential(torch.nn.Linear(opt.input_size, 1024),
-                              torch.nn.Linear(1024, 1))
+    # net = torch.nn.Sequential(torch.nn.Linear(opt.input_size, 1024),
+    #                           torch.nn.Linear(1024, 1))
+    net = RegressorPt(opt.input_size, opt.hidden_size)
     net = net.to(dev)
+
+    ## ---------- Load the checkpoint
+    if opt.reload:
+        if opt.ckpt_path != "":
+            if not os.path.isfile(opt.ckpt_path):
+                print("[Err]: invalid network weights path {:s}".format(opt.ckpt_path))
+            else:
+                if opt.ckpt_path.endswith(".pt"):
+                    net.load_state_dict(torch.load(opt.ckpt_path))
+                    print("[Info]: {:s} loaded.".format(os.path.abspath(opt.ckpt_path)))
+        else:
+            print("[Info]: network did not load a checkpoint!\n")
 
     ## ----- Set up the dataset and loader
     train_set = RegressorDataset(opt.feat_path, opt.score_path)
@@ -132,9 +161,23 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt_dir",
                         type=str,
                         default="./models/")
+    parser.add_argument("--reload",
+                        type=bool,
+                        default=True,
+                        help="")
+
+    ## ./models/regressor_latest.pt
+    parser.add_argument("--ckpt_path",
+                        type=str,
+                        default="./models/regressor_latest.pt",
+                        help="")
     parser.add_argument("--input_size",
                         type=int,
                         default=4096,
+                        help="")
+    parser.add_argument("--hidden_size",
+                        type=int,
+                        default=1024,
                         help="")
     parser.add_argument("--batch_size",
                         type=int,
@@ -142,7 +185,7 @@ if __name__ == "__main__":
                         help="")
     parser.add_argument("--lr",
                         type=float,
-                        default=1e-3,
+                        default=5e-4,
                         help="")
     parser.add_argument("--n_epoch",
                         type=int,
@@ -158,7 +201,7 @@ if __name__ == "__main__":
                         help="")
     parser.add_argument("--save_freq",
                         type=int,
-                        default=10,
+                        default=30,
                         help="")
     parser.add_argument("--debug",
                         type=bool,
