@@ -30,8 +30,8 @@ class RegressorDataset(Dataset):
         print("[Info]: total {:d} samples.".format(self.n))
 
     def __getitem__(self, idx):
-        feature = self.features[idx]
-        score = self.scores[idx]
+        feature = np.array(self.features[idx], dtype=np.float32)
+        score = np.array(self.scores[idx], np.float32)
 
         return torch.tensor(feature), torch.tensor(score)
 
@@ -78,7 +78,7 @@ def run(opt):
             feat, score = feat.to(dev), score.to(dev)
 
             pred = net.forward(feat)
-            print(pred.shape)
+            # print(pred.shape)
 
             loss = loss_func(pred, score)
             if (batch + 1) % opt.print_freq == 0:
@@ -94,6 +94,12 @@ def run(opt):
         print("[Info]: Average loss of epoch {:04d} is {:.5f}"
               .format(epoch + 1,
                       np.mean(np.array(epoch_loss))))
+
+        if (epoch + 1) % opt.save_freq == 0:
+            save_ckpt_path = opt.ckpt_dir + "/regressor_latest.pt"
+            save_ckpt_path = os.path.abspath(save_ckpt_path)
+            torch.save(net.state_dict(), save_ckpt_path)
+            print("[Info]: {:s} saved.".format(save_ckpt_path))
 
 
 if __name__ == "__main__":
@@ -128,13 +134,17 @@ if __name__ == "__main__":
                         help="")
     parser.add_argument("--n_epoch",
                         type=int,
-                        default=100,
+                        default=1000,
                         help="")
     parser.add_argument("--nw",
                         type=int,
                         default=4,
                         help="")
     parser.add_argument("--print_freq",
+                        type=int,
+                        default=50,
+                        help="")
+    parser.add_argument("--save_freq",
                         type=int,
                         default=10,
                         help="")
