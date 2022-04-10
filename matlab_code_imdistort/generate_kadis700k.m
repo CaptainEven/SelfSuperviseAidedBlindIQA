@@ -39,9 +39,9 @@ for i = 1:size(tb, 1)
         else
             disp([dist_im_path ' already exists.'])
         end
+        
     end
-    
-    
+
 end
 
 
